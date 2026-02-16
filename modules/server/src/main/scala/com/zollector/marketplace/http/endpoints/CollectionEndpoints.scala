@@ -6,9 +6,9 @@ import sttp.tapir.generic.auto.*
 import com.zollector.marketplace.http.requests.*
 import com.zollector.marketplace.domain.data.*
 
-trait CollectionEndpoints {
+trait CollectionEndpoints extends BaseEndpoint {
   val createEndpoint =
-    endpoint
+    baseEndpoint
       .tag("collections")
       .name("create")
       .description("Creation a Collection")
@@ -18,7 +18,7 @@ trait CollectionEndpoints {
       .out(jsonBody[Collection])
 
   val getAllEndpoint =
-    endpoint
+    baseEndpoint
       .tag("collections")
       .name("getAll")
       .description("Get all Collections")
@@ -27,7 +27,7 @@ trait CollectionEndpoints {
       .out(jsonBody[List[Collection]])
 
   val getByIdEndpoint =
-    endpoint
+    baseEndpoint
       .tag("collections")
       .name("getById")
       .description("Get a Collection by its Id")

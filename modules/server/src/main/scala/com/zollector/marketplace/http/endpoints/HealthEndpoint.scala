@@ -2,9 +2,9 @@ package com.zollector.marketplace.http.endpoints
 
 import sttp.tapir.*
 
-trait HealthEndpoint {
+trait HealthEndpoint extends BaseEndpoint {
   val healthEndpoint =
-    endpoint
+    baseEndpoint
       .tag("health")
       .name("health")
       .description("Health Check")
