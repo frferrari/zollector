@@ -1,0 +1,15 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: postgres_zollector
+    restart: always
+    environment:
+      POSTGRES_USER: zollector
+      POSTGRES_PASSWORD: zollector
+      POSTGRES_DB: zollector_dev
+    ports:
+      - "5432:5432"
+    volumes:
+      - /home/francois/dev/db.data/zollector:/var/lib/postgresql/data
+      - "./sql:/docker-entrypoint-initdb.d"
+
