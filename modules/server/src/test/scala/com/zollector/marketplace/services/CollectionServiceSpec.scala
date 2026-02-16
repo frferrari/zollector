@@ -1,10 +1,10 @@
 package com.zollector.marketplace.services
 
+import zio.*
+import zio.test.*
 import com.zollector.marketplace.domain.data.Collection
 import com.zollector.marketplace.http.requests.CreateCollectionRequest
 import com.zollector.marketplace.repositories.CollectionRepository
-import zio.*
-import zio.test.*
 import com.zollector.marketplace.syntax.*
 
 object CollectionServiceSpec extends ZIOSpecDefault {

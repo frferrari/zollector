@@ -8,6 +8,11 @@ ThisBuild / scalacOptions ++= Seq(
 
 ThisBuild / testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework")
 
+ThisBuild / dependencyOverrides ++= Seq(
+  "org.testcontainers" % "testcontainers" % "1.21.0",
+  "org.testcontainers" % "postgresql"     % "1.21.0"
+)
+
 val zioVersion        = "2.1.24"
 val tapirVersion      = "1.13.7"
 val zioLoggingVersion = "2.5.3"
