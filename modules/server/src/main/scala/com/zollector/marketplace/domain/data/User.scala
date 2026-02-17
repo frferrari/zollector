@@ -11,4 +11,8 @@ case class User(
     hashedPassword: String,
     createdAt: Instant,
     updatedAt: Option[Instant] = None
-)
+) {
+  def toUserID: UserID = UserID(id, email)
+}
+
+final case class UserID(id: Long, email: String)

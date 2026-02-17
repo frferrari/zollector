@@ -1,21 +1,22 @@
 package com.zollector.marketplace.services
 
 import zio.*
-import com.zollector.marketplace.repositories.UserRepository
-import com.zollector.marketplace.domain.data.User
-import com.zollector.marketplace.http.requests.RegisterUserRequest
-
 import java.security.SecureRandom
 import java.time.Instant
 import javax.crypto.SecretKeyFactory
 import javax.crypto.spec.PBEKeySpec
+import com.zollector.marketplace.repositories.UserRepository
+import com.zollector.marketplace.domain.data.*
+import com.zollector.marketplace.http.requests.RegisterUserRequest
 
 trait UserService {
   def registerUser(req: RegisterUserRequest): Task[User]
   def verifyPassword(email: String, password: String): Task[Boolean]
+  def generateToken(email: String, password: String): Task[Option[UserToken]]
 }
 
-class UserServiceLive private (userRepo: UserRepository) extends UserService {
+class UserServiceLive private (jwtService: JWTService, userRepo: UserRepository)
+    extends UserService {
   override def registerUser(req: RegisterUserRequest): Task[User] =
     userRepo.create(
       User(
@@ -38,11 +39,25 @@ class UserServiceLive private (userRepo: UserRepository) extends UserService {
         UserServiceLive.Hasher.validateHash(password, existingUser.hashedPassword)
       )
     } yield result
+
+  override def generateToken(email: String, password: String): Task[Option[UserToken]] =
+    for {
+      existingUser <- userRepo
+        .getByEmail(email)
+        .someOrFail(new RuntimeException(s"Can't verify user $email"))
+      verified <- ZIO.attempt(
+        UserServiceLive.Hasher.validateHash(password, existingUser.hashedPassword)
+      )
+      maybeToken <- jwtService.createToken(existingUser).when(verified)
+    } yield maybeToken
 }
 
 object UserServiceLive {
   val layer = ZLayer {
-    ZIO.service[UserRepository].map(repo => new UserServiceLive(repo))
+    for {
+      jwtService <- ZIO.service[JWTService]
+      userRepo   <- ZIO.service[UserRepository]
+    } yield new UserServiceLive(jwtService, userRepo)
   }
 
   object Hasher {
