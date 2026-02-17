@@ -3,7 +3,7 @@ CREATE DATABASE zollector_dev;
 
 CREATE EXTENSION "pgcrypto";
 
-CREATE TABLE collections (
+CREATE TABLE users (
     id          BIGSERIAL PRIMARY KEY,
     name        TEXT NOT NULL,
     description TEXT NOT NULL,
@@ -21,8 +21,6 @@ CREATE TABLE users (
     hashed_password TEXT NOT NULL,
     first_name      TEXT NULL,
     last_name       TEXT NULL,
-    company         TEXT NULL,
-    role            TEXT NOT NULL,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at      TIMESTAMPTZ NULL
     );

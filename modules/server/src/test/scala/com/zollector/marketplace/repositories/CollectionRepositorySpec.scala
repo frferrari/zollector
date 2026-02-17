@@ -8,6 +8,8 @@ import com.zollector.marketplace.repositories.*
 
 object CollectionRepositorySpec extends ZIOSpecDefault with RepositorySpec {
 
+  override val initScript: String = "sql/collections.sql"
+
   private val collection1 = CreateCollectionRequest(
     name = "Norway 1960 1990",
     description = "Stamps of Norway from 1960 to 1990",
