@@ -10,6 +10,6 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - /home/francois/dev/db.data/zollector:/var/lib/postgresql/data
       - "./sql:/docker-entrypoint-initdb.d"
+      # - /home/francois/dev/db.data/zollector:/var/lib/postgresql/data
 

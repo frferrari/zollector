@@ -1,9 +1,9 @@
-CREATE DATABASE zollector_dev;
+-- CREATE DATABASE zollector_dev;
 \c zollector_dev;
 
-CREATE EXTENSION "pgcrypto";
+-- CREATE EXTENSION "pgcrypto";
 
-CREATE TABLE users (
+CREATE TABLE collections (
     id          BIGSERIAL PRIMARY KEY,
     name        TEXT NOT NULL,
     description TEXT NOT NULL,
@@ -16,8 +16,8 @@ CREATE TABLE users (
 
 CREATE TABLE users (
     id              BIGSERIAL PRIMARY KEY,
-    nickname        TEXT NOT NULL,
-    email           TEXT NOT NULL,
+    nickname        TEXT UNIQUE NOT NULL,
+    email           TEXT UNIQUE NOT NULL,
     hashed_password TEXT NOT NULL,
     first_name      TEXT NULL,
     last_name       TEXT NULL,
@@ -25,6 +25,6 @@ CREATE TABLE users (
     updated_at      TIMESTAMPTZ NULL
     );
 
-ALTER TABLE users ADD CONSTRAINT users_email_unique UNIQUE (email);
-ALTER TABLE users ADD CONSTRAINT users_nickname_unique UNIQUE (nickname);
+-- ALTER TABLE users ADD CONSTRAINT users_email_unique UNIQUE (email);
+-- ALTER TABLE users ADD CONSTRAINT users_nickname_unique UNIQUE (nickname);
 

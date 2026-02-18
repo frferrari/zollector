@@ -1,3 +1,5 @@
 package com.zollector.marketplace.domain.data
 
-case class UserToken(email: String, token: String, expires: Long)
+import zio.json.JsonCodec
+
+case class UserToken(email: String, token: String, expires: Long) derives JsonCodec

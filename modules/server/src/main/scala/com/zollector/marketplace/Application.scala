@@ -1,5 +1,6 @@
 package com.zollector.marketplace
 
+import com.zollector.marketplace.config.{Configs, JWTConfig}
 import io.getquill.SnakeCase
 import io.getquill.jdbczio.Quill
 import zio.*
@@ -21,10 +22,15 @@ object Application extends ZIOAppDefault {
 
   override def run = serverProgram.provide(
     Server.default,
+    // Configs
+    Configs.makeLayer[JWTConfig](Configs.CONFIG_JWT),
     // services
     CollectionServiceLive.layer,
+    UserServiceLive.layer,
+    JWTServiceLive.layer,
     // repos
     CollectionRepositoryLive.layer,
+    UserRepositoryLive.layer,
     // other requirements
     Repository.dataLayer
   )

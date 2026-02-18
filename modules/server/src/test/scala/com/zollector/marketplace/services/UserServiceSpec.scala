@@ -3,8 +3,8 @@ package com.zollector.marketplace.services
 import zio.*
 import zio.test.*
 import zio.test.{Spec, TestEnvironment, ZIOSpecDefault}
-import com.zollector.marketplace.domain.data.{User, UserID, UserToken}
-import com.zollector.marketplace.http.requests.RegisterUserRequest
+import com.zollector.marketplace.domain.data.*
+import com.zollector.marketplace.http.requests.*
 import com.zollector.marketplace.repositories.UserRepository
 import com.zollector.marketplace.services.*
 
@@ -12,6 +12,15 @@ object UserServiceSpec extends ZIOSpecDefault {
 
   val registerBobRequest =
     RegisterUserRequest("boblazar", "admin@zollector.com", "bobPassword", "bob", "lazar")
+
+  val updateBobPasswordRequest =
+    UpdatePasswordRequest(registerBobRequest.email, registerBobRequest.password, "newPassword")
+
+  val deleteBobAccountRequest =
+    DeleteUserRequest(registerBobRequest.email, registerBobRequest.password)
+
+  val loginRequest =
+    LoginRequest(registerBobRequest.email, registerBobRequest.password)
 
   val bobLazar = User(
     1L,
@@ -96,12 +105,8 @@ object UserServiceSpec extends ZIOSpecDefault {
       test("update password") {
         val newPassword = "newPassword"
         for {
-          service <- ZIO.service[UserService]
-          newUser <- service.updatePassword(
-            bobLazar.email,
-            registerBobRequest.password,
-            newPassword
-          )
+          service  <- ZIO.service[UserService]
+          newUser  <- service.updatePassword(updateBobPasswordRequest)
           oldValid <- service.verifyPassword(bobLazar.email, registerBobRequest.password)
           newValid <- service.verifyPassword(bobLazar.email, newPassword)
         } yield assertTrue(!oldValid && newValid)
@@ -109,19 +114,21 @@ object UserServiceSpec extends ZIOSpecDefault {
       test("delete with non existent user should fail") {
         for {
           service <- ZIO.service[UserService]
-          error   <- service.deleteUser("unknownuser@gmail.com", registerBobRequest.password).flip
+          error <- service
+            .deleteUser(DeleteUserRequest("unknownuser@gmail.com", registerBobRequest.password))
+            .flip
         } yield assertTrue(error.isInstanceOf[RuntimeException])
       },
       test("delete with incorrect credentials should fail") {
         for {
           service <- ZIO.service[UserService]
-          error   <- service.deleteUser(bobLazar.email, "wrongpassword").flip
+          error   <- service.deleteUser(DeleteUserRequest(bobLazar.email, "wrongpassword")).flip
         } yield assertTrue(error.isInstanceOf[RuntimeException])
       },
       test("delete user") {
         for {
           service <- ZIO.service[UserService]
-          result  <- service.deleteUser(bobLazar.email, registerBobRequest.password)
+          result  <- service.deleteUser(deleteBobAccountRequest)
         } yield assertTrue(result)
       }
     ).provide(UserServiceLive.layer, stubJwtLayer, stubRepoLayer)
