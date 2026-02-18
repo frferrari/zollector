@@ -1,13 +1,13 @@
 package com.zollector.marketplace.services
 
+import zio.*
 import com.auth0.jwt.*
 import com.auth0.jwt.JWTVerifier.BaseVerification
 import com.auth0.jwt.algorithms.Algorithm
+import java.time.Instant
+
 import com.zollector.marketplace.config.{Configs, JWTConfig}
 import com.zollector.marketplace.domain.data.*
-import zio.*
-
-import java.time.Instant
 
 trait JWTService {
   def createToken(user: User): Task[UserToken]

@@ -14,15 +14,12 @@ trait CollectionRepository {
   def delete(id: Long): Task[Boolean]
 }
 
-class CollectionRepositoryLive private (quill: Quill.Postgres[SnakeCase])
-    extends CollectionRepository {
+class CollectionRepositoryLive private (quill: Quill.Postgres[SnakeCase]) extends CollectionRepository {
 
   import quill.*
-  inline given schema: SchemaMeta[Collection] = schemaMeta[Collection]("collections")
-  inline given insMeta: InsertMeta[Collection] =
-    insertMeta[Collection](_.id, _.createdAt, _.updatedAt)
-  inline given upMeta: UpdateMeta[Collection] =
-    updateMeta[Collection](_.id, _.createdAt, _.updatedAt)
+  inline given schema: SchemaMeta[Collection]  = schemaMeta[Collection]("collections")
+  inline given insMeta: InsertMeta[Collection] = insertMeta[Collection](_.id, _.createdAt, _.updatedAt)
+  inline given upMeta: UpdateMeta[Collection]  = updateMeta[Collection](_.id, _.createdAt, _.updatedAt)
 
   override def create(collection: Collection): Task[Collection] =
     run {

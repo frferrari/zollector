@@ -19,3 +19,9 @@ CREATE TABLE users (
     created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at      TIMESTAMPTZ NULL
 );
+
+CREATE TABLE recovery_tokens (
+    email           TEXT PRIMARY KEY NOT NULL,
+    token           TEXT NOT NULL,
+    expiration      BIGINT NOT NULL
+);

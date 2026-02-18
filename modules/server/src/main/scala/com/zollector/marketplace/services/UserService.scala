@@ -6,7 +6,7 @@ import java.security.SecureRandom
 import java.time.Instant
 import javax.crypto.SecretKeyFactory
 import javax.crypto.spec.PBEKeySpec
-import com.zollector.marketplace.repositories.UserRepository
+import com.zollector.marketplace.repositories.{RecoveryTokensRepository, UserRepository}
 import com.zollector.marketplace.domain.data.*
 import com.zollector.marketplace.http.requests.*
 
@@ -16,10 +16,16 @@ trait UserService {
   def updatePassword(req: UpdatePasswordRequest): Task[User]
   def deleteUser(req: DeleteUserRequest): Task[Boolean]
   def generateToken(req: LoginRequest): Task[Option[UserToken]]
+  def sendPasswordRecoveryToken(email: String): Task[Unit]
+  def recoverPasswordFromToken(email: String, token: String, newPassword: String): Task[Boolean]
 }
 
-class UserServiceLive private (jwtService: JWTService, userRepo: UserRepository)
-    extends UserService {
+class UserServiceLive private (
+    jwtService: JWTService,
+    emailService: EmailService,
+    userRepo: UserRepository,
+    tokenRepo: RecoveryTokensRepository
+) extends UserService {
   override def registerUser(req: RegisterUserRequest): Task[User] =
     userRepo.create(
       User(
@@ -87,14 +93,41 @@ class UserServiceLive private (jwtService: JWTService, userRepo: UserRepository)
       )
       maybeToken <- jwtService.createToken(existingUser).when(verified)
     } yield maybeToken
+
+  override def sendPasswordRecoveryToken(email: String): Task[Unit] =
+    tokenRepo.getToken(email).flatMap {
+      case Some(token) => emailService.sendPasswordRecoveryEmail(email, token)
+      case None        => ZIO.unit
+    }
+
+  override def recoverPasswordFromToken(
+      email: String,
+      token: String,
+      newPassword: String
+  ): Task[Boolean] =
+    for {
+      existingUser <- userRepo
+        .getByEmail(email)
+        .someOrFail(new RuntimeException(s"Unknown user $email"))
+      tokenIsValid <- tokenRepo.checkToken(email, token)
+      result <- userRepo
+        .update(
+          existingUser.id,
+          existingUser.copy(hashedPassword = UserServiceLive.Hasher.generateHash(newPassword))
+        )
+        .when(tokenIsValid)
+        .map(_.nonEmpty)
+    } yield result
 }
 
 object UserServiceLive {
   val layer = ZLayer {
     for {
-      jwtService <- ZIO.service[JWTService]
-      userRepo   <- ZIO.service[UserRepository]
-    } yield new UserServiceLive(jwtService, userRepo)
+      jwtService   <- ZIO.service[JWTService]
+      emailService <- ZIO.service[EmailService]
+      userRepo     <- ZIO.service[UserRepository]
+      tokenRepo    <- ZIO.service[RecoveryTokensRepository]
+    } yield new UserServiceLive(jwtService, emailService, userRepo, tokenRepo)
   }
 
   object Hasher {

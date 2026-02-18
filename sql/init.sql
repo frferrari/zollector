@@ -23,7 +23,13 @@ CREATE TABLE users (
     last_name       TEXT NULL,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at      TIMESTAMPTZ NULL
-    );
+);
+
+CREATE TABLE recovery_tokens (
+    email           TEXT PRIMARY KEY NOT NULL,
+    token           TEXT NOT NULL,
+    expiration      BIGINT NOT NULL
+);
 
 -- ALTER TABLE users ADD CONSTRAINT users_email_unique UNIQUE (email);
 -- ALTER TABLE users ADD CONSTRAINT users_nickname_unique UNIQUE (nickname);

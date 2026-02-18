@@ -5,7 +5,7 @@ import zio.test.*
 import zio.test.{Spec, TestEnvironment, ZIOSpecDefault}
 import com.zollector.marketplace.domain.data.*
 import com.zollector.marketplace.http.requests.*
-import com.zollector.marketplace.repositories.UserRepository
+import com.zollector.marketplace.repositories.{RecoveryTokensRepository, UserRepository}
 import com.zollector.marketplace.services.*
 
 object UserServiceSpec extends ZIOSpecDefault {
@@ -65,7 +65,29 @@ object UserServiceSpec extends ZIOSpecDefault {
     }
   }
 
-  val stubJwtLayer = ZLayer.succeed({
+  val stubRecoveryTokensRepositoryLayer = ZLayer.succeed {
+    new RecoveryTokensRepository {
+      val db = collection.mutable.Map[String, String]()
+
+      override def getToken(email: String): Task[Option[String]] =
+        ZIO.attempt {
+          val token = util.Random.alphanumeric.take(8).mkString.toUpperCase()
+          db += (email -> token)
+          Some(token)
+        }
+
+      override def checkToken(email: String, token: String): Task[Boolean] =
+        ZIO.succeed(db.get(email).exists(_ == token))
+    }
+  }
+
+  val stubEmailServiceLayer = ZLayer.succeed {
+    new EmailService {
+      override def sendEmail(to: String, subject: String, content: String): Task[Unit] = ZIO.unit
+    }
+  }
+
+  val stubJWTServiceLayer = ZLayer.succeed({
     new JWTService {
       override def createToken(user: User): Task[UserToken] =
         ZIO.succeed(UserToken(user.email, "A TOKEN", Long.MaxValue))
@@ -131,5 +153,11 @@ object UserServiceSpec extends ZIOSpecDefault {
           result  <- service.deleteUser(deleteBobAccountRequest)
         } yield assertTrue(result)
       }
-    ).provide(UserServiceLive.layer, stubJwtLayer, stubRepoLayer)
+    ).provide(
+      UserServiceLive.layer,
+      stubJWTServiceLayer,
+      stubRepoLayer,
+      stubEmailServiceLayer,
+      stubRecoveryTokensRepositoryLayer
+    )
 }

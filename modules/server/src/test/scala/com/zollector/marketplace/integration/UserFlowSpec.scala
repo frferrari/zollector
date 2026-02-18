@@ -9,7 +9,7 @@ import sttp.client3.testing.SttpBackendStub
 import sttp.monad.MonadError
 import sttp.tapir.server.stub.TapirStubInterpreter
 import sttp.tapir.ztapir.RIOMonadError
-import com.zollector.marketplace.config.JWTConfig
+import com.zollector.marketplace.config.{JWTConfig, RecoveryTokensConfig}
 import com.zollector.marketplace.http.controllers.*
 import com.zollector.marketplace.http.requests.*
 import com.zollector.marketplace.http.responses.*
@@ -53,6 +53,13 @@ object UserFlowSpec extends ZIOSpecDefault with RepositorySpec {
     def postRequest[R: JsonCodec](path: String, payload: P): Task[Option[R]] =
       sendRequest(Method.POST, path, payload, None)
 
+    def postRequestNoResponse(path: String, payload: P): Task[Unit] =
+      basicRequest
+        .method(Method.POST, uri"$path")
+        .body(payload.toJson)
+        .send(backend)
+        .unit
+
     def postAuthorizedRequest[R: JsonCodec](
         path: String,
         payload: P,
@@ -81,55 +88,80 @@ object UserFlowSpec extends ZIOSpecDefault with RepositorySpec {
       sendRequest(Method.DELETE, path, payload, Some(token))
   }
 
-  private val registerUserRequest = RegisterUserRequest(
+  class EmailServiceProbe extends EmailService {
+    val db = collection.mutable.Map[String, String]()
+
+    override def sendEmail(to: String, subject: String, content: String): Task[Unit] = ZIO.unit
+
+    override def sendPasswordRecoveryEmail(to: String, token: String): Task[Unit] =
+      ZIO.succeed(db += (to -> token))
+
+    def probeToken(email: String): Task[Option[String]] =
+      ZIO.succeed(db.get(email))
+  }
+
+  val emailServiceLayer: ZLayer[Any, Nothing, EmailServiceProbe] = ZLayer.succeed(new EmailServiceProbe)
+
+  // Bob Lazar
+  private val bobNewPassword = "bobNewPassword"
+  private val registerUserRequestBob = RegisterUserRequest(
     nickname = "boblazar",
-    email = "admin@zollector.com",
+    email = "bob@zollector.com",
     password = "bobPassword",
     firstName = "bob",
     lastName = "lazar"
   )
+  private val loginUserRequestBob =
+    LoginRequest(registerUserRequestBob.email, registerUserRequestBob.password)
+  private val updatePasswordRequestBob =
+    UpdatePasswordRequest(registerUserRequestBob.email, registerUserRequestBob.password, bobNewPassword)
+  private val deleteUserRequestBob =
+    DeleteUserRequest(registerUserRequestBob.email, registerUserRequestBob.password)
 
-  private val loginUserRequest =
-    LoginRequest(registerUserRequest.email, registerUserRequest.password)
-
-  private val updatePasswordRequest =
-    UpdatePasswordRequest(registerUserRequest.email, registerUserRequest.password, "newPassword")
-
-  private val deleteUserRequest =
-    DeleteUserRequest(registerUserRequest.email, registerUserRequest.password)
+  // Michio
+  private val michioNewPassword = "michioNewPassword"
+  private val registerUserRequestMichio = RegisterUserRequest(
+    nickname = "michiokaku",
+    email = "michio@zollector.com",
+    password = "michioPassword",
+    firstName = "michio",
+    lastName = "kaku"
+  )
+  private val loginUserRequestMichio =
+    LoginRequest(registerUserRequestMichio.email, registerUserRequestMichio.password)
 
   override def spec: Spec[TestEnvironment & Scope, Any] =
     suite("UserFlowSpec")(
       test("Register a User") {
         for {
           backendStub   <- backendStubZIO
-          maybeResponse <- backendStub.postRequest[UserResponse]("/users", registerUserRequest)
-        } yield assertTrue(maybeResponse.contains(UserResponse(registerUserRequest.email)))
+          maybeResponse <- backendStub.postRequest[UserResponse]("/users", registerUserRequestBob)
+        } yield assertTrue(maybeResponse.contains(UserResponse(registerUserRequestBob.email)))
       },
       test("Register a User and Log in this User") {
         for {
           backendStub   <- backendStubZIO
-          maybeResponse <- backendStub.postRequest[UserResponse]("/users", registerUserRequest)
-          maybeToken    <- backendStub.postRequest[UserToken]("/users/login", loginUserRequest)
-        } yield assertTrue(maybeToken.exists(_.email == registerUserRequest.email))
+          maybeResponse <- backendStub.postRequest[UserResponse]("/users", registerUserRequestBob)
+          maybeToken    <- backendStub.postRequest[UserToken]("/users/login", loginUserRequestBob)
+        } yield assertTrue(maybeToken.exists(_.email == registerUserRequestBob.email))
       },
       test("Register a User and Update its password") {
         for {
           backendStub   <- backendStubZIO
-          maybeResponse <- backendStub.postRequest[UserResponse]("/users", registerUserRequest)
+          maybeResponse <- backendStub.postRequest[UserResponse]("/users", registerUserRequestBob)
           userToken <- backendStub
-            .postRequest[UserToken]("/users/login", loginUserRequest)
+            .postRequest[UserToken]("/users/login", loginUserRequestBob)
             .someOrFail(new RuntimeException("Authentication failed"))
           _ <- backendStub
             .putAuthorizedRequest[UserResponse](
               "/users/password",
-              updatePasswordRequest,
+              updatePasswordRequestBob,
               userToken.token
             )
-          maybeOldToken <- backendStub.postRequest[UserToken]("/users/login", loginUserRequest)
+          maybeOldToken <- backendStub.postRequest[UserToken]("/users/login", loginUserRequestBob)
           maybeNewToken <- backendStub.postRequest[UserToken](
             "/users/login",
-            loginUserRequest.copy(password = updatePasswordRequest.newPassword)
+            loginUserRequestBob.copy(password = updatePasswordRequestBob.newPassword)
           )
         } yield assertTrue(
           maybeOldToken.isEmpty && maybeNewToken.nonEmpty
@@ -137,29 +169,87 @@ object UserFlowSpec extends ZIOSpecDefault with RepositorySpec {
       },
       test("Register a User and Delete this User") {
         for {
-          backendStub   <- backendStubZIO
-          userRepo      <- ZIO.service[UserRepository]
-          maybeResponse <- backendStub.postRequest[UserResponse]("/users", registerUserRequest)
-          maybeRegisteredUser <- userRepo.getByEmail(registerUserRequest.email)
+          backendStub         <- backendStubZIO
+          userRepo            <- ZIO.service[UserRepository]
+          maybeResponse       <- backendStub.postRequest[UserResponse]("/users", registerUserRequestBob)
+          maybeRegisteredUser <- userRepo.getByEmail(registerUserRequestBob.email)
           userToken <- backendStub
-            .postRequest[UserToken]("/users/login", loginUserRequest)
+            .postRequest[UserToken]("/users/login", loginUserRequestBob)
             .someOrFail(new RuntimeException("Authentication failed"))
           _ <- backendStub
             .deleteAuthorizedRequest[UserResponse](
               "/users",
-              deleteUserRequest,
+              deleteUserRequestBob,
               userToken.token
             )
-          maybeUser <- userRepo.getByEmail(registerUserRequest.email)
+          maybeUser <- userRepo.getByEmail(registerUserRequestBob.email)
         } yield assertTrue(
           maybeRegisteredUser.nonEmpty &&
             maybeUser.isEmpty
+        )
+      },
+      test("Recover Password Flow for 2 different Users") {
+        for {
+          backendStub       <- backendStubZIO
+          userRepo          <- ZIO.service[UserRepository]
+          emailServiceProbe <- ZIO.service[EmailServiceProbe]
+
+          // Register a User
+          _ <- backendStub.postRequest[UserResponse]("/users", registerUserRequestBob)
+          _ <- backendStub.postRequest[UserResponse]("/users", registerUserRequestMichio)
+
+          // Trigger Recover Password Flow
+          _ <- backendStub.postRequestNoResponse(
+            "/users/forgot",
+            ForgotPasswordRequest(registerUserRequestBob.email)
+          )
+          _ <- backendStub.postRequestNoResponse(
+            "/users/forgot",
+            ForgotPasswordRequest(registerUserRequestMichio.email)
+          )
+
+          // Fetch the token I was sent by email
+          bobToken <- emailServiceProbe
+            .probeToken(registerUserRequestBob.email)
+            .someOrFail(new RuntimeException("Token was not emailed"))
+          michioToken <- emailServiceProbe
+            .probeToken(registerUserRequestMichio.email)
+            .someOrFail(new RuntimeException("Token was not emailed"))
+
+          // Recover
+          _ <- backendStub.postRequestNoResponse(
+            "/users/recover",
+            RecoverPasswordRequest(registerUserRequestBob.email, bobToken, bobNewPassword)
+          )
+          _ <- backendStub.postRequestNoResponse(
+            "/users/recover",
+            RecoverPasswordRequest(registerUserRequestMichio.email, michioToken, michioNewPassword)
+          )
+
+          maybeOldBobToken <- backendStub.postRequest[UserToken]("/users/login", loginUserRequestBob)
+          maybeNewBobToken <- backendStub.postRequest[UserToken](
+            "/users/login",
+            loginUserRequestBob.copy(password = bobNewPassword)
+          )
+
+          maybeOldMichioToken <- backendStub.postRequest[UserToken]("/users/login", loginUserRequestMichio)
+          maybeNewMichioToken <- backendStub.postRequest[UserToken](
+            "/users/login",
+            loginUserRequestMichio.copy(password = michioNewPassword)
+          )
+
+        } yield assertTrue(
+          maybeOldBobToken.isEmpty && maybeNewBobToken.nonEmpty &&
+            maybeOldMichioToken.isEmpty && maybeNewMichioToken.nonEmpty
         )
       }
     ).provide(
       UserServiceLive.layer,
       JWTServiceLive.layer,
       UserRepositoryLive.layer,
+      RecoveryTokensRepositoryLive.layer,
+      emailServiceLayer,
+      ZLayer.succeed(RecoveryTokensConfig(24 * 3600)),
       Repository.quillLayer,
       dataSourceLayer,
       Scope.default,
