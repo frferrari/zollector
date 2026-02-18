@@ -1,24 +1,22 @@
 package com.zollector.marketplace.services
 
-import zio.*
-
-import java.time.Instant
 import com.auth0.jwt.*
 import com.auth0.jwt.JWTVerifier.BaseVerification
 import com.auth0.jwt.algorithms.Algorithm
+import com.zollector.marketplace.config.{Configs, JWTConfig}
 import com.zollector.marketplace.domain.data.*
+import zio.*
+
+import java.time.Instant
 
 trait JWTService {
   def createToken(user: User): Task[UserToken]
   def verityToken(token: String): Task[UserID]
 }
 
-class JWTServiceLive(clock: java.time.Clock) extends JWTService {
-
-  private val SECRET    = "secret"       // TODO parse from config
+class JWTServiceLive(jwtConfig: JWTConfig, clock: java.time.Clock) extends JWTService {
   private val ISSUER    = "zollector.com"
-  private val TTL       = 30 * 24 * 3600 // TODO parse from config
-  private val algorithm = Algorithm.HMAC512(SECRET)
+  private val algorithm = Algorithm.HMAC512(jwtConfig.secret)
   private val verifier: JWTVerifier =
     JWT
       .require(algorithm)
@@ -31,7 +29,7 @@ class JWTServiceLive(clock: java.time.Clock) extends JWTService {
   override def createToken(user: User): Task[UserToken] =
     for {
       now        <- ZIO.attempt(clock.instant())
-      expiration <- ZIO.succeed(now.plusSeconds(TTL))
+      expiration <- ZIO.succeed(now.plusSeconds(jwtConfig.ttl))
       token <- ZIO.attempt(
         JWT
           .create()
@@ -55,8 +53,13 @@ class JWTServiceLive(clock: java.time.Clock) extends JWTService {
 
 object JWTServiceLive {
   val layer = ZLayer {
-    Clock.javaClock.map(clock => new JWTServiceLive(clock))
+    for {
+      jwtConfig <- ZIO.service[JWTConfig]
+      clock     <- Clock.javaClock
+    } yield new JWTServiceLive(jwtConfig, clock)
   }
+
+  val configuredLayer = Configs.makeLayer[JWTConfig](Configs.CONFIG_JWT) >>> layer
 }
 
 object JWTServiceDemo extends ZIOAppDefault {
@@ -79,5 +82,8 @@ object JWTServiceDemo extends ZIOAppDefault {
   } yield ()
 
   override def run: ZIO[ZIOAppArgs & Scope, Any, Any] =
-    program.provide(JWTServiceLive.layer)
+    program.provide(
+      JWTServiceLive.layer,
+      Configs.makeLayer[JWTConfig](Configs.CONFIG_JWT)
+    )
 }

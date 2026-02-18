@@ -12,6 +12,8 @@ import com.zollector.marketplace.http.requests.RegisterUserRequest
 trait UserService {
   def registerUser(req: RegisterUserRequest): Task[User]
   def verifyPassword(email: String, password: String): Task[Boolean]
+  def updatePassword(email: String, oldPassword: String, newPassword: String): Task[User]
+  def deleteUser(email: String, password: String): Task[Boolean]
   def generateToken(email: String, password: String): Task[Option[UserToken]]
 }
 
@@ -32,13 +34,47 @@ class UserServiceLive private (jwtService: JWTService, userRepo: UserRepository)
 
   override def verifyPassword(email: String, password: String): Task[Boolean] =
     for {
+      existingUser <- userRepo.getByEmail(email)
+      result <- existingUser match {
+        case Some(user) =>
+          ZIO
+            .attempt(UserServiceLive.Hasher.validateHash(password, user.hashedPassword))
+            .orElseSucceed(false)
+        case None =>
+          ZIO.succeed(false)
+      }
+    } yield result
+
+  override def updatePassword(email: String, oldPassword: String, newPassword: String): Task[User] =
+    for {
       existingUser <- userRepo
         .getByEmail(email)
-        .someOrFail(new RuntimeException(s"Can't verify user $email"))
-      result <- ZIO.attempt(
+        .someOrFail(new RuntimeException(s"Can't verify user $email, not found"))
+      verified <- ZIO.attempt(
+        UserServiceLive.Hasher.validateHash(oldPassword, existingUser.hashedPassword)
+      )
+      updatedUser <- userRepo
+        .update(
+          existingUser.id,
+          existingUser.copy(hashedPassword = UserServiceLive.Hasher.generateHash(newPassword))
+        )
+        .when(verified)
+        .someOrFail(new RuntimeException(s"Could not update password for user $email"))
+    } yield updatedUser
+
+  override def deleteUser(email: String, password: String): Task[Boolean] =
+    for {
+      existingUser <- userRepo
+        .getByEmail(email)
+        .someOrFail(new RuntimeException(s"Can't verify user $email, not found"))
+      verified <- ZIO.attempt(
         UserServiceLive.Hasher.validateHash(password, existingUser.hashedPassword)
       )
-    } yield result
+      isUserDeleted <- userRepo
+        .delete(existingUser.id)
+        .when(verified)
+        .someOrFail(new RuntimeException(s"Could not delete user $email"))
+    } yield isUserDeleted
 
   override def generateToken(email: String, password: String): Task[Option[UserToken]] =
     for {
@@ -119,11 +155,12 @@ object UserServiceLive {
 
 object UserServiceDemo {
   def main(args: Array[String]) = {
-    println(UserServiceLive.Hasher.generateHash("admin@zollector.com"))
+    val password = "bobPassword"
+    println(UserServiceLive.Hasher.generateHash(password))
     println(
       UserServiceLive.Hasher.validateHash(
-        "admin@zollector.com",
-        "1000:4A6F579C455FBA4C0ED77A1517EF9546D5E1A3B8EF9E3033:C4947E73B50A06A5CF3B2EF3036718BFB8E763BDEECF0B1B"
+        password,
+        "1000:957CFE57B3A3C7FE1888AA9E00FB2E05E385EE6330A89374:7D59DE2824017BE7ED869B50D41F1A8F3A32AF05E82D2E00"
       )
     )
   }
