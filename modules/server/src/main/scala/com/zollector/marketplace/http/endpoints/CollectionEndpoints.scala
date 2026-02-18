@@ -8,7 +8,7 @@ import com.zollector.marketplace.domain.data.*
 
 trait CollectionEndpoints extends BaseEndpoint {
   val createEndpoint =
-    baseEndpoint
+    secureBaseEndpoint
       .tag("collections")
       .name("create")
       .description("Creation a Collection")
@@ -18,7 +18,7 @@ trait CollectionEndpoints extends BaseEndpoint {
       .out(jsonBody[Collection])
 
   val getAllEndpoint =
-    baseEndpoint
+    secureBaseEndpoint
       .tag("collections")
       .name("getAll")
       .description("Get all Collections")
@@ -27,7 +27,7 @@ trait CollectionEndpoints extends BaseEndpoint {
       .out(jsonBody[List[Collection]])
 
   val getByIdEndpoint =
-    baseEndpoint
+    secureBaseEndpoint
       .tag("collections")
       .name("getById")
       .description("Get a Collection by its Id")

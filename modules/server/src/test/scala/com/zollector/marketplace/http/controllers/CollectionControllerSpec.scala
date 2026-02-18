@@ -12,9 +12,9 @@ import sttp.tapir.ztapir.RIOMonadError
 import zio.json.{DecoderOps, EncoderOps}
 
 import java.time.Instant
-import com.zollector.marketplace.domain.data.Collection
+import com.zollector.marketplace.domain.data.{Collection, User, UserID, UserToken}
 import com.zollector.marketplace.http.requests.CreateCollectionRequest
-import com.zollector.marketplace.services.CollectionService
+import com.zollector.marketplace.services.{CollectionService, JWTService}
 import com.zollector.marketplace.syntax.*
 
 object CollectionControllerSpec extends ZIOSpecDefault {
@@ -48,6 +48,14 @@ object CollectionControllerSpec extends ZIOSpecDefault {
     override def getAll: Task[List[Collection]] = ZIO.succeed(List(FranceCollection))
   }
 
+  private val jwtServiceStub = new JWTService {
+    override def createToken(user: User): Task[UserToken] =
+      ZIO.succeed(UserToken(user.email, "ALL_IS_GOOD", 99999999L))
+
+    override def verityToken(token: String): Task[UserID] =
+      ZIO.succeed(UserID(1, "bob@zollection.com"))
+  }
+
   private def backendStubZIO(endpoint: CollectionController => ServerEndpoint[Any, Task]) = for {
     controller <- CollectionController.makeZIO
     backendStub <- ZIO.succeed(
@@ -70,6 +78,7 @@ object CollectionControllerSpec extends ZIOSpecDefault {
                 FranceCollection.description
               ).toJson
             )
+            .header("Authorization", "Bearer ALL_IS_GOOD")
             .send(backendStub)
         } yield response.body
 
@@ -84,7 +93,10 @@ object CollectionControllerSpec extends ZIOSpecDefault {
       test("getAll Collections") {
         val program = for {
           backendStub <- backendStubZIO(_.getAll)
-          response    <- basicRequest.get(uri"/collections").send(backendStub)
+          response <- basicRequest
+            .get(uri"/collections")
+            .header("Authorization", "Bearer ALL_IS_GOOD")
+            .send(backendStub)
         } yield response.body
 
         program.assert { respBody =>
@@ -96,7 +108,10 @@ object CollectionControllerSpec extends ZIOSpecDefault {
       test("getById") {
         val program = for {
           backendStub <- backendStubZIO(_.getById)
-          response    <- basicRequest.get(uri"/collections/1").send(backendStub)
+          response <- basicRequest
+            .get(uri"/collections/1")
+            .header("Authorization", "Bearer ALL_IS_GOOD")
+            .send(backendStub)
         } yield response.body
 
         program.assert { respBody =>
@@ -104,5 +119,5 @@ object CollectionControllerSpec extends ZIOSpecDefault {
         }
       }
     )
-      .provide(ZLayer.succeed(serviceStub))
+      .provide(ZLayer.succeed(serviceStub), ZLayer.succeed(jwtServiceStub))
 }
