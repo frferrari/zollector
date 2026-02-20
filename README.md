@@ -1,3 +1,7 @@
+# Description
+
+A project based on the zio-rite-of-passage course from RockTheJVM
+
 # Manual testing
 
 - Register a User
