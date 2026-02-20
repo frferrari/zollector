@@ -21,7 +21,7 @@ trait UserEndpoints extends BaseEndpoint {
   val updatePasswordEndpoint =
     secureBaseEndpoint
       .tag("Users")
-      .name("update password")
+      .name("updateById password")
       .description("Update user password")
       .in("users" / "password")
       .put
@@ -31,7 +31,7 @@ trait UserEndpoints extends BaseEndpoint {
   val deleteEndpoint =
     secureBaseEndpoint
       .tag("Users")
-      .name("delete user account")
+      .name("deleteById user account")
       .description("Delete a User account")
       .in("users")
       .delete

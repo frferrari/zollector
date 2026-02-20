@@ -5,6 +5,7 @@ import java.time.Instant
 
 final case class Collection(
     id: Long,
+    userId: Long,
     name: String,
     description: String,
     yearStart: Option[Int] = None,

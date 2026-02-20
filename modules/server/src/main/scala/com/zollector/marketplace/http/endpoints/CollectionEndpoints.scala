@@ -11,7 +11,7 @@ trait CollectionEndpoints extends BaseEndpoint {
     secureBaseEndpoint
       .tag("collections")
       .name("create")
-      .description("Creation a Collection")
+      .description("Creation a Collection associated to the logged in User")
       .in("collections")
       .post
       .in(jsonBody[CreateCollectionRequest])
@@ -21,7 +21,7 @@ trait CollectionEndpoints extends BaseEndpoint {
     secureBaseEndpoint
       .tag("collections")
       .name("getAll")
-      .description("Get all Collections")
+      .description("Get all Collections of the logged in User")
       .in("collections")
       .get
       .out(jsonBody[List[Collection]])
@@ -30,8 +30,27 @@ trait CollectionEndpoints extends BaseEndpoint {
     secureBaseEndpoint
       .tag("collections")
       .name("getById")
-      .description("Get a Collection by its Id")
+      .description("Get a Collection by its Id for a logged in User")
       .in("collections" / path[String]("id"))
       .get
       .out(jsonBody[Option[Collection]])
+
+  val updateByIdEndpoint =
+    secureBaseEndpoint
+      .tag("collections")
+      .name("updateBySlug")
+      .description("Update a Collection for a logged in User")
+      .in("collections" / path[Long]("id"))
+      .put
+      .in(jsonBody[UpdateCollectionRequest])
+      .out(jsonBody[Option[Collection]])
+
+  val deleteByIdEndpoint =
+    secureBaseEndpoint
+      .tag("collections")
+      .name("deleteById")
+      .description("Delete a Collection for a logged in User")
+      .in("collections" / path[Long]("id"))
+      .delete
+      .out(jsonBody[Boolean])
 }

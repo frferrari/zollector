@@ -67,7 +67,7 @@ object UserRepositorySpec extends ZIOSpecDefault with RepositorySpec {
             userByNickname.contains(user)
         )
       },
-      test("update a user") {
+      test("updateById a user") {
         for {
           repo        <- ZIO.service[UserRepository]
           createdUser <- repo.create(user1)
@@ -81,7 +81,7 @@ object UserRepositorySpec extends ZIOSpecDefault with RepositorySpec {
             updatedUser.hashedPassword == updatedUser1.hashedPassword
         )
       },
-      test("delete a user that exists, and fails on one that doesn't exist") {
+      test("deleteById a user that exists, and fails on one that doesn't exist") {
         for {
           repo <- ZIO.service[UserRepository]
           user <- repo.create(user1)
@@ -89,7 +89,7 @@ object UserRepositorySpec extends ZIOSpecDefault with RepositorySpec {
           // Should return true when successfully deleting a user
           isUserDeleted <- repo.delete(user.id)
 
-          // Should return false when it fails to delete a user
+          // Should return false when it fails to deleteById a user
           isUnknownUserDeleted <- repo.delete(user.id + 1L)
 
           // Check that the user no longer exists in the DB

@@ -2,8 +2,9 @@ package com.zollector.marketplace.services
 
 import zio.*
 import zio.test.*
+
+import com.zollector.marketplace.domain.commands.CreateCollectionCommand
 import com.zollector.marketplace.domain.data.Collection
-import com.zollector.marketplace.http.requests.CreateCollectionRequest
 import com.zollector.marketplace.repositories.CollectionRepository
 import com.zollector.marketplace.syntax.*
 
@@ -23,104 +24,118 @@ object CollectionServiceSpec extends ZIOSpecDefault {
           newCollection
         }
 
-      override def getById(id: Long): Task[Option[Collection]] =
-        ZIO.succeed(db.get(id))
+      override def getById(id: Long, userId: Long): Task[Option[Collection]] =
+        ZIO.succeed(db.values.find(c => c.id == id && c.userId == userId))
 
-      override def getBySlug(slug: String): Task[Option[Collection]] =
-        ZIO.succeed(db.values.find(_.slug == slug))
+      override def getBySlug(slug: String, userId: Long): Task[Option[Collection]] =
+        ZIO.succeed(db.values.find(c => c.slug == slug && c.userId == userId))
 
-      override def getAll: Task[List[Collection]] =
-        ZIO.succeed(db.values.toList)
+      override def getAll(userId: Long): Task[List[Collection]] =
+        ZIO.succeed(db.values.filter(_.userId == userId).toList)
 
-      override def update(id: Long, collection: Collection): Task[Collection] =
+      override def updateById(id: Long, userId: Long, collection: Collection): Task[Option[Collection]] =
         ZIO.attempt {
-          val collection = db(id)
-          db += (id -> collection)
-          collection
+          db.get(id) match {
+            case Some(_) => {
+              db += (id -> collection)
+              Some(collection)
+            }
+            case None => None
+          }
         }
 
-      override def delete(id: Long): Task[Boolean] =
+      override def updateBySlug(slug: String, userId: Long, collection: Collection): Task[Option[Collection]] =
+        ZIO.attempt {
+          db.values.find(_.slug == slug) match {
+            case Some(c) =>
+              db += (c.id -> collection)
+              Some(collection)
+            case None => None
+          }
+        }
+
+      override def deleteById(id: Long, userId: Long): Task[Boolean] =
         ZIO.attempt {
           db -= id
           true
         }
+
+      override def deleteBySlug(slug: String, userId: Long): Task[Boolean] =
+        ZIO.attempt {
+          db.values.find(_.slug == slug) match {
+            case Some(c) =>
+              db -= c.id
+              true
+
+            case None =>
+              false
+          }
+        }
     }
+  )
+
+  private val bobUserId    = 1L
+  private val michioUserId = 2L
+  private val createCollectionCommand = CreateCollectionCommand(
+    userId = bobUserId,
+    name = "Norway 1960 1990",
+    description = "Stamps of Norway from 1960 to 1990",
+    yearStart = Some(1960),
+    yearEnd = Some(1990)
   )
 
   override def spec: Spec[TestEnvironment & Scope, Any] =
     suite("CollectionServiceSpec")(
       test("create a collection") {
-        val collectionZIO = service(
-          _.create(
-            CreateCollectionRequest(
-              name = "Norway 1960 1990",
-              description = "Stamps of Norway from 1960 to 1990",
-              yearStart = Some(1960),
-              yearEnd = Some(1990)
-            )
-          )
-        )
+        val collectionZIO = service(_.create(createCollectionCommand))
 
         collectionZIO.assert { collection =>
-          collection.name == "Norway 1960 1990" &&
-          collection.description == "Stamps of Norway from 1960 to 1990" &&
-          collection.yearStart.contains(1960) &&
-          collection.yearEnd.contains(1990)
+          collection.name == createCollectionCommand.name &&
+          collection.description == createCollectionCommand.description &&
+          collection.yearStart == createCollectionCommand.yearStart &&
+          collection.yearEnd == createCollectionCommand.yearEnd
         }
       },
-      test("getById") {
+      test("getById returns the collection matching the slug and the user") {
         val program = for {
-          collection <- service(
-            _.create(
-              CreateCollectionRequest(
-                name = "Norway 1960 1990",
-                description = "Stamps of Norway from 1960 to 1990",
-                yearStart = Some(1960),
-                yearEnd = Some(1990)
-              )
-            )
-          )
-          collectionOpt <- service(_.getById(collection.id))
-        } yield (collection, collectionOpt)
+          collection            <- service(_.create(createCollectionCommand))
+          userCollectionOpt     <- service(_.getById(collection.id, createCollectionCommand.userId))
+          notFoundCollectionOpt <- service(_.getBySlug(collection.slug, -1L))
+        } yield (collection, userCollectionOpt, notFoundCollectionOpt)
 
-        program.assert { case (collection, collectionOpt) =>
-          collectionOpt.map(_.id).contains(collection.id) &&
-          collection.name == "Norway 1960 1990" &&
-          collection.description == "Stamps of Norway from 1960 to 1990" &&
-          collection.yearStart.contains(1960) &&
-          collection.yearEnd.contains(1990) &&
-          collectionOpt.map(_.slug).contains(collection.slug)
+        program.assert { case (collection, userCollectionOpt, notFoundCollectionOpt) =>
+          userCollectionOpt.map(_.id).contains(collection.id) &&
+          userCollectionOpt.map(_.name).contains(createCollectionCommand.name) &&
+          userCollectionOpt.map(_.description).contains(createCollectionCommand.description) &&
+          userCollectionOpt.map(_.yearStart).contains(createCollectionCommand.yearStart) &&
+          userCollectionOpt.map(_.yearEnd).contains(createCollectionCommand.yearEnd) &&
+          userCollectionOpt.map(_.slug).contains(collection.slug) &&
+          notFoundCollectionOpt.isEmpty
         }
       },
-      test("getBySlug") {
+      test("getBySlug returns the collection matching the slug and the user") {
         val program = for {
-          collection <- service(
-            _.create(
-              CreateCollectionRequest(
-                name = "Norway 1960 1990",
-                description = "Stamps of Norway from 1960 to 1990",
-                yearStart = Some(1960),
-                yearEnd = Some(1990)
-              )
-            )
-          )
-          collectionOpt <- service(_.getBySlug(collection.slug))
-        } yield (collection, collectionOpt)
+          collection            <- service(_.create(createCollectionCommand))
+          userCollectionOpt     <- service(_.getBySlug(collection.slug, createCollectionCommand.userId))
+          notFoundCollectionOpt <- service(_.getBySlug(collection.slug, -1L))
+        } yield (collection, userCollectionOpt, notFoundCollectionOpt)
 
-        program.assert { case (collection, collectionOpt) =>
-          collectionOpt.map(_.id).contains(collection.id) &&
-          collection.name == "Norway 1960 1990" &&
-          collection.description == "Stamps of Norway from 1960 to 1990" &&
-          collection.yearStart.contains(1960) &&
-          collection.yearEnd.contains(1990) &&
-          collectionOpt.map(_.slug).contains(collection.slug)
+        program.assert { case (collection, userCollectionOpt, notFoundCollectionOpt) =>
+          userCollectionOpt.map(_.id).contains(collection.id) &&
+          userCollectionOpt.map(_.name).contains(createCollectionCommand.name) &&
+          userCollectionOpt.map(_.description).contains(createCollectionCommand.description) &&
+          userCollectionOpt.map(_.yearStart).contains(createCollectionCommand.yearStart) &&
+          userCollectionOpt.map(_.yearEnd).contains(createCollectionCommand.yearEnd) &&
+          userCollectionOpt.map(_.slug).contains(collection.slug) &&
+          notFoundCollectionOpt.isEmpty
         }
       },
-      test("getAll") {
+      test("getAll collections returns collections belonging to the proper user") {
         val program = for {
-          collection1 <- service(
+          bobCollection1 <- service(
             _.create(
-              CreateCollectionRequest(
+              CreateCollectionCommand(
+                userId = bobUserId,
                 name = "Norway 1960 1990",
                 description = "Stamps of Norway from 1960 to 1990",
                 yearStart = Some(1960),
@@ -128,9 +143,21 @@ object CollectionServiceSpec extends ZIOSpecDefault {
               )
             )
           )
-          collection2 <- service(
+          bobCollection2 <- service(
             _.create(
-              CreateCollectionRequest(
+              CreateCollectionCommand(
+                userId = bobUserId,
+                name = "Finland 1950 2000",
+                description = "Stamps of Finland from 1950 to 2000",
+                yearStart = Some(1950),
+                yearEnd = Some(2000)
+              )
+            )
+          )
+          michioCollection1 <- service(
+            _.create(
+              CreateCollectionCommand(
+                userId = michioUserId,
                 name = "Sweden 1950 2000",
                 description = "Stamps of Sweden from 1950 to 2000",
                 yearStart = Some(1950),
@@ -138,11 +165,13 @@ object CollectionServiceSpec extends ZIOSpecDefault {
               )
             )
           )
-          collections <- service(_.getAll)
-        } yield (collections, collection1, collection2)
+          bobCollections    <- service(_.getAll(bobUserId))
+          michioCollections <- service(_.getAll(michioUserId))
+        } yield (bobCollections, michioCollections, bobCollection1, bobCollection2, michioCollection1)
 
-        program.assert { case (collections, collection1, collection2) =>
-          collections.toSet == Set(collection1, collection2)
+        program.assert { case (bobCollections, michioCollections, bobCollection1, bobCollection2, michioCollection1) =>
+          bobCollections.toSet == Set(bobCollection1, bobCollection2) &&
+          michioCollections.toSet == Set(michioCollection1)
         }
       }
     ).provide(CollectionServiceLive.layer, stubRepositoryLayer)

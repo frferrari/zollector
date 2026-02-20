@@ -124,7 +124,7 @@ object UserServiceSpec extends ZIOSpecDefault {
           valid   <- service.verifyPassword("unknownuser@gmail.com", "wrongpassword")
         } yield assertTrue(!valid)
       },
-      test("update password") {
+      test("updateById password") {
         val newPassword = "newPassword"
         for {
           service  <- ZIO.service[UserService]
@@ -133,7 +133,7 @@ object UserServiceSpec extends ZIOSpecDefault {
           newValid <- service.verifyPassword(bobLazar.email, newPassword)
         } yield assertTrue(!oldValid && newValid)
       },
-      test("delete with non existent user should fail") {
+      test("deleteById with non existent user should fail") {
         for {
           service <- ZIO.service[UserService]
           error <- service
@@ -141,13 +141,13 @@ object UserServiceSpec extends ZIOSpecDefault {
             .flip
         } yield assertTrue(error.isInstanceOf[RuntimeException])
       },
-      test("delete with incorrect credentials should fail") {
+      test("deleteById with incorrect credentials should fail") {
         for {
           service <- ZIO.service[UserService]
           error   <- service.deleteUser(DeleteUserRequest(bobLazar.email, "wrongpassword")).flip
         } yield assertTrue(error.isInstanceOf[RuntimeException])
       },
-      test("delete user") {
+      test("deleteById user") {
         for {
           service <- ZIO.service[UserService]
           result  <- service.deleteUser(deleteBobAccountRequest)

@@ -2,13 +2,13 @@ package com.zollector.marketplace.http.requests
 
 import zio.json.{DeriveJsonCodec, JsonCodec}
 
-case class CreateCollectionRequest(
+case class UpdateCollectionRequest(
     name: String,
     description: String,
     yearStart: Option[Int] = None,
     yearEnd: Option[Int] = None
 )
 
-object CreateCollectionRequest {
-  given codec: JsonCodec[CreateCollectionRequest] = DeriveJsonCodec.gen[CreateCollectionRequest]
+object UpdateCollectionRequest {
+  given codec: JsonCodec[UpdateCollectionRequest] = DeriveJsonCodec.gen[UpdateCollectionRequest]
 }

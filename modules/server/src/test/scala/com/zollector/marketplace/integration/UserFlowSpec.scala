@@ -9,6 +9,8 @@ import sttp.client3.testing.SttpBackendStub
 import sttp.monad.MonadError
 import sttp.tapir.server.stub.TapirStubInterpreter
 import sttp.tapir.ztapir.RIOMonadError
+import sttp.model.Method
+
 import com.zollector.marketplace.config.{JWTConfig, RecoveryTokensConfig}
 import com.zollector.marketplace.http.controllers.*
 import com.zollector.marketplace.http.requests.*
@@ -16,13 +18,10 @@ import com.zollector.marketplace.http.responses.*
 import com.zollector.marketplace.repositories.*
 import com.zollector.marketplace.services.*
 import com.zollector.marketplace.domain.data.UserToken
-import sttp.model.Method
 
-object UserFlowSpec extends ZIOSpecDefault with RepositorySpec {
+object UserFlowSpec extends ZIOSpecDefault with RepositorySpec with IntegrationSpec {
 
   override val initScript: String = "sql/integration.sql"
-
-  private given zioME: MonadError[Task] = new RIOMonadError[Any]
 
   private val backendStubZIO =
     for {
@@ -33,72 +32,6 @@ object UserFlowSpec extends ZIOSpecDefault with RepositorySpec {
           .backend()
       )
     } yield backendStub
-
-  extension [P: JsonCodec](backend: SttpBackend[Task, Nothing]) {
-    def sendRequest[R: JsonCodec](
-        method: Method,
-        path: String,
-        payload: P,
-        maybeToken: Option[String] = None
-    ): Task[Option[R]] =
-      basicRequest
-        .method(method, uri"$path")
-        .body(payload.toJson)
-        .auth
-        .bearer(maybeToken.getOrElse(""))
-        .send(backend)
-        .map(_.body)
-        .map(_.toOption.flatMap(json => json.fromJson[R].toOption))
-
-    def postRequest[R: JsonCodec](path: String, payload: P): Task[Option[R]] =
-      sendRequest(Method.POST, path, payload, None)
-
-    def postRequestNoResponse(path: String, payload: P): Task[Unit] =
-      basicRequest
-        .method(Method.POST, uri"$path")
-        .body(payload.toJson)
-        .send(backend)
-        .unit
-
-    def postAuthorizedRequest[R: JsonCodec](
-        path: String,
-        payload: P,
-        token: String
-    ): Task[Option[R]] =
-      sendRequest(Method.POST, path, payload, Some(token))
-
-    def putRequest[R: JsonCodec](path: String, payload: P): Task[Option[R]] =
-      sendRequest(Method.PUT, path, payload, None)
-
-    def putAuthorizedRequest[R: JsonCodec](
-        path: String,
-        payload: P,
-        token: String
-    ): Task[Option[R]] =
-      sendRequest(Method.PUT, path, payload, Some(token))
-
-    def deleteRequest[R: JsonCodec](path: String, payload: P): Task[Option[R]] =
-      sendRequest(Method.DELETE, path, payload, None)
-
-    def deleteAuthorizedRequest[R: JsonCodec](
-        path: String,
-        payload: P,
-        token: String
-    ): Task[Option[R]] =
-      sendRequest(Method.DELETE, path, payload, Some(token))
-  }
-
-  class EmailServiceProbe extends EmailService {
-    val db = collection.mutable.Map[String, String]()
-
-    override def sendEmail(to: String, subject: String, content: String): Task[Unit] = ZIO.unit
-
-    override def sendPasswordRecoveryEmail(to: String, token: String): Task[Unit] =
-      ZIO.succeed(db += (to -> token))
-
-    def probeToken(email: String): Task[Option[String]] =
-      ZIO.succeed(db.get(email))
-  }
 
   val emailServiceLayer: ZLayer[Any, Nothing, EmailServiceProbe] = ZLayer.succeed(new EmailServiceProbe)
 

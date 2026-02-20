@@ -66,7 +66,7 @@ class UserServiceLive private (
           existingUser.copy(hashedPassword = UserServiceLive.Hasher.generateHash(req.newPassword))
         )
         .when(verified)
-        .someOrFail(new RuntimeException(s"Could not update password for user ${req.email}"))
+        .someOrFail(new RuntimeException(s"Could not updateById password for user ${req.email}"))
     } yield updatedUser
 
   override def deleteUser(req: DeleteUserRequest): Task[Boolean] =
@@ -80,7 +80,7 @@ class UserServiceLive private (
       isUserDeleted <- userRepo
         .delete(existingUser.id)
         .when(verified)
-        .someOrFail(new RuntimeException(s"Could not delete user ${req.email}"))
+        .someOrFail(new RuntimeException(s"Could not deleteById user ${req.email}"))
     } yield isUserDeleted
 
   override def generateToken(req: LoginRequest): Task[Option[UserToken]] =

@@ -5,6 +5,7 @@
 
 CREATE TABLE collections (
     id          BIGSERIAL PRIMARY KEY,
+    user_id     BIGINT NOT NULL,
     name        TEXT NOT NULL,
     description TEXT NOT NULL,
     year_start  INT NULL,
