@@ -3,11 +3,12 @@ package com.zollector.marketplace.http.endpoints
 import sttp.tapir.*
 import sttp.tapir.json.zio.*
 import sttp.tapir.generic.auto.*
-
 import com.zollector.marketplace.http.requests.*
 import com.zollector.marketplace.domain.data.*
+import com.zollector.marketplace.domain.data.ValueObjects.CollectionId
 
 trait CollectionEndpoints extends BaseEndpoint {
+
   val createEndpoint =
     secureBaseEndpoint
       .tag("collections")
@@ -32,7 +33,7 @@ trait CollectionEndpoints extends BaseEndpoint {
       .tag("collections")
       .name("getById")
       .description("Get a Collection by its Id for a logged in User")
-      .in("collections" / path[String]("id"))
+      .in("collections" / path[CollectionId]("id"))
       .get
       .out(jsonBody[Option[Collection]])
 
@@ -41,7 +42,7 @@ trait CollectionEndpoints extends BaseEndpoint {
       .tag("collections")
       .name("updateBySlug")
       .description("Update a Collection for a logged in User")
-      .in("collections" / path[Long]("id"))
+      .in("collections" / path[CollectionId]("id"))
       .put
       .in(jsonBody[UpdateCollectionRequest])
       .out(jsonBody[Option[Collection]])
@@ -51,7 +52,7 @@ trait CollectionEndpoints extends BaseEndpoint {
       .tag("collections")
       .name("deleteById")
       .description("Delete a Collection for a logged in User")
-      .in("collections" / path[Long]("id"))
+      .in("collections" / path[CollectionId]("id"))
       .delete
       .out(jsonBody[Boolean])
 }

@@ -5,15 +5,17 @@ import com.auth0.jwt.*
 import com.auth0.jwt.JWTVerifier.BaseVerification
 import com.auth0.jwt.algorithms.Algorithm
 import java.time.Instant
+import java.util.UUID
 
 import com.zollector.marketplace.config.*
 import com.zollector.marketplace.http.requests.*
 import com.zollector.marketplace.domain.data.*
 import com.zollector.marketplace.repositories.*
+import com.zollector.marketplace.domain.data.ValueObjects.*
 
 trait JWTService {
   def createToken(user: User): Task[UserToken]
-  def verityToken(token: String): Task[UserID]
+  def verityToken(token: String): Task[UserIdentifier]
 }
 
 class JWTServiceLive(jwtConfig: JWTConfig, clock: java.time.Clock) extends JWTService {
@@ -39,16 +41,16 @@ class JWTServiceLive(jwtConfig: JWTConfig, clock: java.time.Clock) extends JWTSe
           .withIssuedAt(now)
           .withExpiresAt(expiration)
           .withSubject(user.id.toString)
-          .withClaim(CLAIM_EMAIL, user.email)
+          .withClaim(CLAIM_EMAIL, user.email.value)
           .sign(algorithm)
       )
     } yield UserToken(user.email, token, expiration.getEpochSecond)
 
-  override def verityToken(token: String): Task[UserID] =
+  override def verityToken(token: String): Task[UserIdentifier] =
     for {
       decoded <- ZIO.attempt(verifier.verify(token))
       userId <- ZIO.attempt(
-        UserID(decoded.getSubject.toLong, decoded.getClaim(CLAIM_EMAIL).asString())
+        UserIdentifier(UserId(UUID.fromString(decoded.getSubject)), Email(decoded.getClaim(CLAIM_EMAIL).asString()))
       )
     } yield userId
 }
@@ -69,12 +71,12 @@ object JWTServiceDemo extends ZIOAppDefault {
     service <- ZIO.service[JWTService]
     userToken <- service.createToken(
       User(
-        1L,
+        UserId.random,
         "nickname",
-        "admin@zollector.com",
+        Email("admin@zollector.com"),
         "firstname",
         "lastname",
-        "hashedpassword",
+        HashedPassword("hashedpassword"),
         java.time.Instant.now()
       )
     )

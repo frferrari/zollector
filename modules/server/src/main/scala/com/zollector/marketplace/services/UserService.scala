@@ -8,16 +8,17 @@ import javax.crypto.spec.PBEKeySpec
 
 import com.zollector.marketplace.http.requests.*
 import com.zollector.marketplace.domain.data.*
+import com.zollector.marketplace.domain.data.ValueObjects.*
 import com.zollector.marketplace.repositories.*
 
 trait UserService {
   def registerUser(req: RegisterUserRequest): Task[User]
-  def verifyPassword(email: String, password: String): Task[Boolean]
+  def verifyPassword(email: Email, password: String): Task[Boolean]
   def updatePassword(req: UpdatePasswordRequest): Task[User]
   def deleteUser(req: DeleteUserRequest): Task[Boolean]
   def generateToken(req: LoginRequest): Task[Option[UserToken]]
-  def sendPasswordRecoveryToken(email: String): Task[Unit]
-  def recoverPasswordFromToken(email: String, token: String, newPassword: String): Task[Boolean]
+  def sendPasswordRecoveryToken(email: Email): Task[Unit]
+  def recoverPasswordFromToken(email: Email, token: String, newPassword: String): Task[Boolean]
 }
 
 class UserServiceLive private (
@@ -29,7 +30,7 @@ class UserServiceLive private (
   override def registerUser(req: RegisterUserRequest): Task[User] =
     userRepo.create(
       User(
-        id = -1L,
+        id = UserId.random,
         nickname = req.nickname,
         email = req.email,
         hashedPassword = UserServiceLive.Hasher.generateHash(req.password),
@@ -39,7 +40,7 @@ class UserServiceLive private (
       )
     )
 
-  override def verifyPassword(email: String, password: String): Task[Boolean] =
+  override def verifyPassword(email: Email, password: String): Task[Boolean] =
     for {
       existingUser <- userRepo.getByEmail(email)
       result <- existingUser match {
@@ -94,14 +95,14 @@ class UserServiceLive private (
       maybeToken <- jwtService.createToken(existingUser).when(verified)
     } yield maybeToken
 
-  override def sendPasswordRecoveryToken(email: String): Task[Unit] =
+  override def sendPasswordRecoveryToken(email: Email): Task[Unit] =
     tokenRepo.getToken(email).flatMap {
-      case Some(token) => emailService.sendPasswordRecoveryEmail(email, token)
+      case Some(token) => emailService.sendPasswordRecoveryEmail(email.value, token)
       case None        => ZIO.unit
     }
 
   override def recoverPasswordFromToken(
-      email: String,
+      email: Email,
       token: String,
       newPassword: String
   ): Task[Boolean] =
@@ -166,16 +167,16 @@ object UserServiceLive {
       diff == 0
     }
 
-    def generateHash(password: String): String = {
+    def generateHash(password: String): HashedPassword = {
       val rng: SecureRandom = new SecureRandom()
       val salt: Array[Byte] = Array.ofDim[Byte](SALT_BYTE_SIZE)
       rng.nextBytes(salt) // A 24 random bytes
       val hashBytes = pbkdf2(password.toCharArray, salt, PBKDF2_ITERATIONS, HASH_BYTE_SIZE)
-      s"$PBKDF2_ITERATIONS:${toHex(salt)}:${toHex(hashBytes)}"
+      HashedPassword(s"$PBKDF2_ITERATIONS:${toHex(salt)}:${toHex(hashBytes)}")
     }
 
-    def validateHash(password: String, hashedPassword: String): Boolean = {
-      val hashSegments = hashedPassword.split(":")
+    def validateHash(password: String, hashedPassword: HashedPassword): Boolean = {
+      val hashSegments = hashedPassword.value.split(":")
       val nIterations  = hashSegments(0).toInt
       val salt         = fromHex(hashSegments(1))
       val validHash    = fromHex(hashSegments(2))
@@ -194,7 +195,7 @@ object UserServiceDemo {
     println(
       UserServiceLive.Hasher.validateHash(
         password,
-        "1000:957CFE57B3A3C7FE1888AA9E00FB2E05E385EE6330A89374:7D59DE2824017BE7ED869B50D41F1A8F3A32AF05E82D2E00"
+        HashedPassword("1000:957CFE57B3A3C7FE1888AA9E00FB2E05E385EE6330A89374:7D59DE2824017BE7ED869B50D41F1A8F3A32AF05E82D2E00")
       )
     )
   }

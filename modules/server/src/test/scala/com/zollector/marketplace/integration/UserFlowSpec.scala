@@ -17,6 +17,7 @@ import com.zollector.marketplace.services.*
 import com.zollector.marketplace.domain.data.*
 import com.zollector.marketplace.http.requests.*
 import com.zollector.marketplace.http.responses.*
+import com.zollector.marketplace.domain.data.ValueObjects.Email
 
 object UserFlowSpec extends ZIOSpecDefault with RepositorySpec with IntegrationSpec {
 
@@ -38,7 +39,7 @@ object UserFlowSpec extends ZIOSpecDefault with RepositorySpec with IntegrationS
   private val bobNewPassword = "bobNewPassword"
   private val registerUserRequestBob = RegisterUserRequest(
     nickname = "boblazar",
-    email = "bob@zollector.com",
+    email = Email("bob@zollector.com"),
     password = "bobPassword",
     firstName = "bob",
     lastName = "lazar"
@@ -54,7 +55,7 @@ object UserFlowSpec extends ZIOSpecDefault with RepositorySpec with IntegrationS
   private val michioNewPassword = "michioNewPassword"
   private val registerUserRequestMichio = RegisterUserRequest(
     nickname = "michiokaku",
-    email = "michio@zollector.com",
+    email = Email("michio@zollector.com"),
     password = "michioPassword",
     firstName = "michio",
     lastName = "kaku"
@@ -142,10 +143,10 @@ object UserFlowSpec extends ZIOSpecDefault with RepositorySpec with IntegrationS
 
           // Fetch the token I was sent by email
           bobToken <- emailServiceProbe
-            .probeToken(registerUserRequestBob.email)
+            .probeToken(registerUserRequestBob.email.value)
             .someOrFail(new RuntimeException("Token was not emailed"))
           michioToken <- emailServiceProbe
-            .probeToken(registerUserRequestMichio.email)
+            .probeToken(registerUserRequestMichio.email.value)
             .someOrFail(new RuntimeException("Token was not emailed"))
 
           // Recover

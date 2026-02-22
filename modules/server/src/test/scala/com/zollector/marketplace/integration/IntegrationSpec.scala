@@ -1,5 +1,6 @@
 package com.zollector.marketplace.integration
 
+import com.zollector.marketplace.domain.data.ValueObjects.CollectionId
 import zio.*
 import zio.json.*
 import sttp.client3.*
@@ -125,7 +126,7 @@ trait IntegrationSpec {
       .postAuthorizedRequest[Collection]("/collections", createCollectionRequest, userToken.token)
 
   def getCollection(
-      collectionId: Long,
+      collectionId: CollectionId,
       userToken: UserToken,
       backendStub: SttpBackend[Task, Nothing]
   ): Task[Option[Collection]] =
@@ -133,7 +134,7 @@ trait IntegrationSpec {
       .getAuthorizedRequestNoPayload[Collection](s"/collections/$collectionId", userToken.token)
 
   def updateCollection(
-      collectionId: Long,
+      collectionId: CollectionId,
       updateCollectionRequest: UpdateCollectionRequest,
       userToken: UserToken,
       backendStub: SttpBackend[Task, Nothing]
@@ -142,7 +143,7 @@ trait IntegrationSpec {
       .putAuthorizedRequest[Collection](s"/collections/$collectionId", updateCollectionRequest, userToken.token)
 
   def deleteCollection(
-      collectionId: Long,
+      collectionId: CollectionId,
       userToken: UserToken,
       backendStub: SttpBackend[Task, Nothing]
   ): Task[Option[Boolean]] =

@@ -5,18 +5,19 @@ import com.raquo.laminar.codecs.*
 import com.zollector.marketplace.common.Constants
 import com.zollector.marketplace.components.Anchors
 import com.zollector.marketplace.domain.data.Collection
+import com.zollector.marketplace.domain.data.ValueObjects.*
 import org.scalajs.dom
 import frontroute.*
 
 object CollectionsPage {
   val dummyCollection = Collection(
-    1L,
-    1L,
+    CollectionId.random,
+    UserId.random,
     "Finland 1960 1990",
     "Stamps from Finland 1960 to 1990 MNH",
     Some(1960),
     Some(1990),
-    "finland-1960-1990",
+    Slug("finland-1960-1990"),
     None,
     java.time.Instant.now()
   )

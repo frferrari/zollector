@@ -1,19 +1,21 @@
 package com.zollector.marketplace.domain.commands
 
-import com.zollector.marketplace.domain.data.Collection
+import com.zollector.marketplace.domain.data.*
+import com.zollector.marketplace.domain.data.ValueObjects.*
 
 import java.time.Instant
+import java.util.UUID
 
 case class UpdateCollectionCommand(
-    userId: Long,
+    userId: UserId,
     name: String,
     description: String,
     yearStart: Option[Int] = None,
     yearEnd: Option[Int] = None
 ) {
-  def toCollection(id: Long = -1L) =
+  def toCollection(collectionId: CollectionId = CollectionId.random) =
     Collection(
-      id = id,
+      id = collectionId,
       userId = userId,
       name = name,
       description = description,

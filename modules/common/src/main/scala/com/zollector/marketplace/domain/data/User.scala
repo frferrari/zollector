@@ -1,18 +1,21 @@
 package com.zollector.marketplace.domain.data
 
+import com.zollector.marketplace.domain.data.ValueObjects.*
+
 import java.time.Instant
+import java.util.UUID
 
 case class User(
-    id: Long,
+    id: UserId,
     nickname: String,
-    email: String,
+    email: Email,
     firstName: String,
     lastName: String,
-    hashedPassword: String,
+    hashedPassword: HashedPassword,
     createdAt: Instant,
     updatedAt: Option[Instant] = None
 ) {
-  def toUserID: UserID = UserID(id, email)
+  def toUserIdentifier: UserIdentifier = UserIdentifier(id, email)
 }
 
-final case class UserID(id: Long, email: String)
+final case class UserIdentifier(id: UserId, email: Email)

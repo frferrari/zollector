@@ -4,6 +4,7 @@ import com.zollector.marketplace.config.JWTConfig
 import com.zollector.marketplace.domain.data.User
 import zio.*
 import zio.test.*
+import com.zollector.marketplace.domain.data.ValueObjects.*
 
 object JWTServiceSpec extends ZIOSpecDefault {
 
@@ -15,17 +16,17 @@ object JWTServiceSpec extends ZIOSpecDefault {
           clock   <- Clock.javaClock
           now     <- ZIO.attempt(clock.instant)
           user = User(
-            1L,
+            UserId.random,
             "aNickname",
-            "admin@zollector.com",
+            Email("admin@zollector.com"),
             "bob",
             "lazar",
-            "1000:4A6F579C455FBA4C0ED77A1517EF9546D5E1A3B8EF9E3033:C4947E73B50A06A5CF3B2EF3036718BFB8E763BDEECF0B1B", // See UserServiceDemo in UserService
+            HashedPassword("1000:4A6F579C455FBA4C0ED77A1517EF9546D5E1A3B8EF9E3033:C4947E73B50A06A5CF3B2EF3036718BFB8E763BDEECF0B1B"), // See UserServiceDemo in UserService
             now
           )
           userToken <- service.createToken(user)
           userId    <- service.verityToken(userToken.token)
-        } yield assertTrue(userId.id == 1L && userId.email == user.email)
+        } yield assertTrue(userId.id == user.id && userId.email == user.email)
       }
     ).provide(JWTServiceLive.layer, ZLayer.succeed(JWTConfig("secret", 3600)))
 }

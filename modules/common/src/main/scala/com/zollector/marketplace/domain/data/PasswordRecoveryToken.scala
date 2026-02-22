@@ -1,3 +1,5 @@
 package com.zollector.marketplace.domain.data
 
-final case class PasswordRecoveryToken(email: String, token: String, expiration: Long)
+import com.zollector.marketplace.domain.data.ValueObjects.Email
+
+final case class PasswordRecoveryToken(email: Email, token: String, expiration: Long)

@@ -1,16 +1,18 @@
 package com.zollector.marketplace.domain.data
 
+import com.zollector.marketplace.domain.data.ValueObjects.*
 import zio.json.{DeriveJsonCodec, JsonCodec}
+
 import java.time.Instant
 
 final case class Collection(
-    id: Long,
-    userId: Long,
+    id: CollectionId,
+    userId: UserId,
     name: String,
     description: String,
     yearStart: Option[Int] = None,
     yearEnd: Option[Int] = None,
-    slug: String,
+    slug: Slug,
     image: Option[String] = None,
     createdAt: Instant,
     updatedAt: Option[Instant] = None
@@ -19,10 +21,12 @@ final case class Collection(
 object Collection {
   given codec: JsonCodec[Collection] = DeriveJsonCodec.gen[Collection]
 
-  def makeSlug(name: String): String =
-    name
-      .replaceAll(" +", " ")
-      .split(" ")
-      .map(_.toLowerCase())
-      .mkString("-")
+  def makeSlug(name: String): Slug =
+    Slug(
+      name
+        .replaceAll(" +", " ")
+        .split(" ")
+        .map(_.toLowerCase())
+        .mkString("-")
+    )
 }

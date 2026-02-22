@@ -14,6 +14,7 @@ import sttp.tapir.ztapir.RIOMonadError
 import java.time.Instant
 import com.zollector.marketplace.domain.commands.*
 import com.zollector.marketplace.domain.data.*
+import com.zollector.marketplace.domain.data.ValueObjects.*
 import com.zollector.marketplace.http.requests.*
 import com.zollector.marketplace.services.*
 import com.zollector.marketplace.syntax.*
@@ -22,13 +23,13 @@ object CollectionControllerSpec extends ZIOSpecDefault {
   private given zioMonadError: MonadError[Task] = new RIOMonadError[Any]
 
   private val FranceCollection = Collection(
-    1L,
-    1L,
+    CollectionId.random,
+    UserId.random,
     "France 1960 to 1990",
     "Stamps from France",
     Some(1960),
     Some(1990),
-    "france-1960-to-1990",
+    Slug("france-1960-to-1990"),
     None,
     Instant.now(),
     None
@@ -38,42 +39,42 @@ object CollectionControllerSpec extends ZIOSpecDefault {
     override def create(cmd: CreateCollectionCommand): Task[Collection] =
       ZIO.succeed(FranceCollection)
 
-    override def getById(id: Long, userId: Long): Task[Option[Collection]] = ZIO.succeed {
+    override def getById(id: CollectionId, userId: UserId): Task[Option[Collection]] = ZIO.succeed {
       if (id == FranceCollection.id && userId == FranceCollection.userId) Some(FranceCollection)
       else None
     }
 
-    override def getBySlug(slug: String, userId: Long): Task[Option[Collection]] = ZIO.succeed {
+    override def getBySlug(slug: Slug, userId: UserId): Task[Option[Collection]] = ZIO.succeed {
       if (slug == FranceCollection.slug && userId == FranceCollection.userId) Some(FranceCollection)
       else None
     }
 
-    override def getAll(userId: Long): Task[List[Collection]] =
+    override def getAll(userId: UserId): Task[List[Collection]] =
       ZIO.succeed(List(FranceCollection))
 
-    override def updateById(id: Long, userId: Long, cmd: UpdateCollectionCommand): Task[Option[Collection]] =
+    override def updateById(id: CollectionId, userId: UserId, cmd: UpdateCollectionCommand): Task[Option[Collection]] =
       ZIO.succeed {
         if (id == FranceCollection.id && userId == FranceCollection.userId) Some(cmd.toCollection())
         else None
       }
 
-    override def updateBySlug(slug: String, userId: Long, cmd: UpdateCollectionCommand): Task[Option[Collection]] =
+    override def updateBySlug(slug: Slug, userId: UserId, cmd: UpdateCollectionCommand): Task[Option[Collection]] =
       ZIO.succeed(None)
 
-    override def deleteById(id: Long, userId: Long): Task[Boolean] = ZIO.succeed {
+    override def deleteById(id: CollectionId, userId: UserId): Task[Boolean] = ZIO.succeed {
       if (id == FranceCollection.id && userId == FranceCollection.userId) true
       else false
     }
 
-    override def deleteBySlug(slug: String, userId: Long): Task[Boolean] = ZIO.succeed(false)
+    override def deleteBySlug(slug: Slug, userId: UserId): Task[Boolean] = ZIO.succeed(false)
   }
 
   private val jwtServiceStub = new JWTService {
     override def createToken(user: User): Task[UserToken] =
       ZIO.succeed(UserToken(user.email, "ALL_IS_GOOD", 99999999L))
 
-    override def verityToken(token: String): Task[UserID] =
-      ZIO.succeed(UserID(1, "bob@zollection.com"))
+    override def verityToken(token: String): Task[UserIdentifier] =
+      ZIO.succeed(UserIdentifier(FranceCollection.userId, Email("bob@zollection.com")))
   }
 
   private def backendStubZIO(endpoint: CollectionController => ServerEndpoint[Any, Task]) = for {
@@ -129,7 +130,7 @@ object CollectionControllerSpec extends ZIOSpecDefault {
         val program = for {
           backendStub <- backendStubZIO(_.getById)
           response <- basicRequest
-            .get(uri"/collections/1")
+            .get(uri"/collections/${FranceCollection.id}")
             .header("Authorization", "Bearer ALL_IS_GOOD")
             .send(backendStub)
         } yield response.body
@@ -142,7 +143,7 @@ object CollectionControllerSpec extends ZIOSpecDefault {
         val program = for {
           backendStub <- backendStubZIO(_.updateCollection)
           updateResponse <- basicRequest
-            .put(uri"/collections/1")
+            .put(uri"/collections/${FranceCollection.id}")
             .body(
               UpdateCollectionRequest(
                 FranceCollection.name,
@@ -162,7 +163,7 @@ object CollectionControllerSpec extends ZIOSpecDefault {
         val program = for {
           backendStub <- backendStubZIO(_.deleteCollection)
           deleteResponse <- basicRequest
-            .delete(uri"/collections/1")
+            .delete(uri"/collections/${FranceCollection.id}")
             .header("Authorization", "Bearer ALL_IS_GOOD")
             .send(backendStub)
             .map(_.body.toOption.flatMap(_.fromJson[Boolean].toOption))

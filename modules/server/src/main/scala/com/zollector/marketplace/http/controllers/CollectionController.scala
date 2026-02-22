@@ -3,7 +3,7 @@ package com.zollector.marketplace.http.controllers
 import com.zollector.marketplace.domain.commands.{CreateCollectionCommand, UpdateCollectionCommand}
 import zio.*
 import sttp.tapir.server.ServerEndpoint
-import com.zollector.marketplace.domain.data.UserID
+import com.zollector.marketplace.domain.data.UserIdentifier
 import com.zollector.marketplace.http.endpoints.CollectionEndpoints
 import com.zollector.marketplace.services.{CollectionService, JWTService}
 
@@ -13,7 +13,7 @@ class CollectionController private (service: CollectionService, jwtService: JWTS
 
   val create: ServerEndpoint[Any, Task] =
     createEndpoint
-      .serverSecurityLogic[UserID, Task](token => jwtService.verityToken(token).either)
+      .serverSecurityLogic[UserIdentifier, Task](token => jwtService.verityToken(token).either)
       .serverLogic { userId => req =>
         service
           .create(CreateCollectionCommand(userId.id, req.name, req.description, req.yearStart, req.yearEnd))
@@ -22,22 +22,19 @@ class CollectionController private (service: CollectionService, jwtService: JWTS
 
   val getAll: ServerEndpoint[Any, Task] =
     getAllEndpoint
-      .serverSecurityLogic[UserID, Task](token => jwtService.verityToken(token).either)
+      .serverSecurityLogic[UserIdentifier, Task](token => jwtService.verityToken(token).either)
       .serverLogic { userId => _ => service.getAll(userId.id).either }
 
   val getById: ServerEndpoint[Any, Task] =
     getByIdEndpoint
-      .serverSecurityLogic[UserID, Task](token => jwtService.verityToken(token).either)
-      .serverLogic { userId => collectionId =>
-        ZIO
-          .attempt(collectionId.toLong)
-          .flatMap(id => service.getById(id, userId.id))
-          .either
+      .serverSecurityLogic[UserIdentifier, Task](token => jwtService.verityToken(token).either)
+      .serverLogic { userIdentifier => collectionId =>
+        service.getById(collectionId, userIdentifier.id).either
       }
 
   val updateCollection: ServerEndpoint[Any, Task] =
     updateByIdEndpoint
-      .serverSecurityLogic[UserID, Task](token => jwtService.verityToken(token).either)
+      .serverSecurityLogic[UserIdentifier, Task](token => jwtService.verityToken(token).either)
       .serverLogic { userId => (collectionId, req) =>
         service
           .updateById(
@@ -50,7 +47,7 @@ class CollectionController private (service: CollectionService, jwtService: JWTS
 
   val deleteCollection: ServerEndpoint[Any, Task] =
     deleteByIdEndpoint
-      .serverSecurityLogic[UserID, Task](token => jwtService.verityToken(token).either)
+      .serverSecurityLogic[UserIdentifier, Task](token => jwtService.verityToken(token).either)
       .serverLogic { userId => collectionId =>
         service.deleteById(collectionId, userId.id).either
       }

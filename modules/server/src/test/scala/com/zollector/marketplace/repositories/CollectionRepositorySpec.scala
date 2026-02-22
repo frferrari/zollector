@@ -2,18 +2,19 @@ package com.zollector.marketplace.repositories
 
 import zio.*
 import zio.test.*
-import javax.sql.DataSource
 
+import javax.sql.DataSource
 import com.zollector.marketplace.domain.commands.*
 import com.zollector.marketplace.domain.data.*
 import com.zollector.marketplace.repositories.*
+import com.zollector.marketplace.domain.data.ValueObjects.*
 
 object CollectionRepositorySpec extends ZIOSpecDefault with RepositorySpec {
 
   override val initScript: String = "sql/collections.sql"
 
-  private val bobUserId    = 1L
-  private val michioUserId = 2L
+  private val bobUserId    = UserId.random
+  private val michioUserId = UserId.random
 
   private val bobCollectionA = CreateCollectionCommand(
     userId = bobUserId,
@@ -21,7 +22,7 @@ object CollectionRepositorySpec extends ZIOSpecDefault with RepositorySpec {
     description = "Stamps of Norway from 1960 to 1990",
     yearStart = Some(1960),
     yearEnd = Some(1990)
-  ).toCollection(1L)
+  ).toCollection()
 
   private val bobCollectionB = CreateCollectionCommand(
     userId = bobUserId,
@@ -29,7 +30,7 @@ object CollectionRepositorySpec extends ZIOSpecDefault with RepositorySpec {
     description = "Stamps of Sweden from 1940 to 1970",
     yearStart = Some(1940),
     yearEnd = Some(1970)
-  ).toCollection(2L)
+  ).toCollection()
 
   private val michioCollectionA = CreateCollectionCommand(
     userId = michioUserId,
@@ -37,7 +38,7 @@ object CollectionRepositorySpec extends ZIOSpecDefault with RepositorySpec {
     description = "Stamps of Finland from 1930 to 1980",
     yearStart = Some(1930),
     yearEnd = Some(1980)
-  ).toCollection(3L)
+  ).toCollection()
 
   private val bobCollectionAupdated = bobCollectionA.copy(
     name = "Norway 1950 2000",
@@ -58,9 +59,25 @@ object CollectionRepositorySpec extends ZIOSpecDefault with RepositorySpec {
     suite("CollectionRepositorySpec")(
       test("create a collection") {
         for {
-          repo       <- ZIO.service[CollectionRepository]
-          collection <- repo.create(bobCollectionA)
-        } yield assertTrue(collection.id == 1L)
+          repo              <- ZIO.service[CollectionRepository]
+          collectionCreated <- repo.create(bobCollectionA)
+          fetchedCollection <- repo
+            .getById(bobCollectionA.id, bobCollectionA.userId)
+            .someOrFail("Could not fetch collection after creation")
+        } yield assertTrue(
+          collectionCreated.id == bobCollectionA.id &&
+            collectionCreated.userId == bobCollectionA.userId &&
+            collectionCreated.name == bobCollectionA.name &&
+            collectionCreated.description == bobCollectionA.description &&
+            collectionCreated.yearStart == bobCollectionA.yearStart &&
+            collectionCreated.yearEnd == bobCollectionA.yearEnd &&
+            fetchedCollection.id == bobCollectionA.id &&
+            fetchedCollection.userId == bobCollectionA.userId &&
+            fetchedCollection.name == bobCollectionA.name &&
+            fetchedCollection.description == bobCollectionA.description &&
+            fetchedCollection.yearStart == bobCollectionA.yearStart &&
+            fetchedCollection.yearEnd == bobCollectionA.yearEnd
+        )
       },
       test("get a collection by id and slug and userId") {
         for {
@@ -68,8 +85,8 @@ object CollectionRepositorySpec extends ZIOSpecDefault with RepositorySpec {
           collection               <- repo.create(bobCollectionA)
           collectionById           <- repo.getById(collection.id, bobCollectionA.userId)
           collectionBySlug         <- repo.getBySlug(collection.slug, bobCollectionA.userId)
-          notFoundCollectionById   <- repo.getById(collection.id, -1L)
-          notFoundCollectionBySlug <- repo.getBySlug(collection.slug, -1L)
+          notFoundCollectionById   <- repo.getById(collection.id, UserId.random)
+          notFoundCollectionBySlug <- repo.getBySlug(collection.slug, UserId.random)
         } yield assertTrue(
           collectionById.contains(collection) &&
             collectionBySlug.contains(collection) &&
@@ -145,7 +162,7 @@ object CollectionRepositorySpec extends ZIOSpecDefault with RepositorySpec {
           isCollectionDeleted <- repo.deleteById(bobCollectionA.id, bobUserId)
 
           // Should return false when it fails to deleteBySlug a collection
-          shouldFailDeletingUnknownCollection <- repo.deleteById(-1L, bobUserId).map(r => !r)
+          shouldFailDeletingUnknownCollection <- repo.deleteById(CollectionId.random, bobUserId).map(r => !r)
 
           // Check the state of the collections in the DB
           bobCollectionAnoLongerExistsById <- repo.getById(bobCollectionA.id, bobCollectionA.userId).map(_.isEmpty)
@@ -178,7 +195,7 @@ object CollectionRepositorySpec extends ZIOSpecDefault with RepositorySpec {
           isCollectionDeleted <- repo.deleteBySlug(bobCollectionA.slug, bobUserId)
 
           // Should return false when it fails to deleteBySlug a collection
-          shouldFailDeletingUnknownCollection <- repo.deleteBySlug("none", bobUserId).map(r => !r)
+          shouldFailDeletingUnknownCollection <- repo.deleteBySlug(Slug("none"), bobUserId).map(r => !r)
 
           // Check the state of the collections in the DB
           bobCollectionAnoLongerExistsById <- repo.getById(bobCollectionA.id, bobCollectionA.userId).map(_.isEmpty)

@@ -5,17 +5,18 @@ import io.getquill.*
 import io.getquill.jdbczio.Quill
 import com.zollector.marketplace.config.{Configs, RecoveryTokensConfig}
 import com.zollector.marketplace.domain.data.PasswordRecoveryToken
+import com.zollector.marketplace.domain.data.ValueObjects.Email
 
 trait RecoveryTokensRepository {
-  def getToken(email: String): Task[Option[String]]
-  def checkToken(email: String, token: String): Task[Boolean]
+  def getToken(email: Email): Task[Option[String]]
+  def checkToken(email: Email, token: String): Task[Boolean]
 }
 
 class RecoveryTokensRepositoryLive private (
     tokenConfig: RecoveryTokensConfig,
     quill: Quill.Postgres[SnakeCase],
     userRepo: UserRepository
-) extends RecoveryTokensRepository {
+) extends RecoveryTokensRepository with QuillMappings {
 
   import quill.*
 
@@ -28,10 +29,10 @@ class RecoveryTokensRepositoryLive private (
   private def randomUppercaseString(len: Int): Task[String] =
     ZIO.succeed(scala.util.Random.alphanumeric.take(len).mkString.toUpperCase)
 
-  private def findToken(email: String): Task[Option[String]] =
+  private def findToken(email: Email): Task[Option[String]] =
     run(query[PasswordRecoveryToken].filter(_.email == lift(email))).map(_.headOption.map(_.token))
 
-  private def replaceToken(email: String): Task[String] =
+  private def replaceToken(email: Email): Task[String] =
     for {
       token <- randomUppercaseString(8)
       _ <- run(
@@ -44,7 +45,7 @@ class RecoveryTokensRepositoryLive private (
       )
     } yield token
 
-  private def generateToken(email: String): Task[String] = for {
+  private def generateToken(email: Email): Task[String] = for {
     token <- randomUppercaseString(8)
     _ <- run(
       query[PasswordRecoveryToken]
@@ -55,19 +56,19 @@ class RecoveryTokensRepositoryLive private (
     )
   } yield token
 
-  private def makeFreshToken(email: String): Task[String] =
+  private def makeFreshToken(email: Email): Task[String] =
     findToken(email).flatMap {
       case Some(_) => replaceToken(email)
       case None    => generateToken(email)
     }
 
-  override def getToken(email: String): Task[Option[String]] =
+  override def getToken(email: Email): Task[Option[String]] =
     userRepo.getByEmail(email).flatMap {
       case None               => ZIO.none
       case Some(existingUser) => makeFreshToken(email).map(Some(_))
     }
 
-  override def checkToken(email: String, token: String): Task[Boolean] =
+  override def checkToken(email: Email, token: String): Task[Boolean] =
     run(
       query[PasswordRecoveryToken].filter(r => r.email == lift(email) && r.token == lift(token))
     )

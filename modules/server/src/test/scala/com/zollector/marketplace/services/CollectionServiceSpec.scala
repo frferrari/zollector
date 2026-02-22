@@ -7,6 +7,7 @@ import com.zollector.marketplace.domain.commands.CreateCollectionCommand
 import com.zollector.marketplace.domain.data.Collection
 import com.zollector.marketplace.repositories.CollectionRepository
 import com.zollector.marketplace.syntax.*
+import com.zollector.marketplace.domain.data.ValueObjects.*
 
 object CollectionServiceSpec extends ZIOSpecDefault {
 
@@ -14,26 +15,26 @@ object CollectionServiceSpec extends ZIOSpecDefault {
 
   val stubRepositoryLayer = ZLayer.succeed(
     new CollectionRepository {
-      val db = collection.mutable.Map[Long, Collection]()
+      val db = collection.mutable.Map[CollectionId, Collection]()
 
       override def create(collection: Collection): Task[Collection] =
         ZIO.succeed {
-          val nextId        = db.keys.maxOption.getOrElse(0L) + 1L
+          val nextId        = CollectionId.random
           val newCollection = collection.copy(id = nextId)
           db += (nextId -> newCollection)
           newCollection
         }
 
-      override def getById(id: Long, userId: Long): Task[Option[Collection]] =
+      override def getById(id: CollectionId, userId: UserId): Task[Option[Collection]] =
         ZIO.succeed(db.values.find(c => c.id == id && c.userId == userId))
 
-      override def getBySlug(slug: String, userId: Long): Task[Option[Collection]] =
+      override def getBySlug(slug: Slug, userId: UserId): Task[Option[Collection]] =
         ZIO.succeed(db.values.find(c => c.slug == slug && c.userId == userId))
 
-      override def getAll(userId: Long): Task[List[Collection]] =
+      override def getAll(userId: UserId): Task[List[Collection]] =
         ZIO.succeed(db.values.filter(_.userId == userId).toList)
 
-      override def updateById(id: Long, userId: Long, collection: Collection): Task[Option[Collection]] =
+      override def updateById(id: CollectionId, userId: UserId, collection: Collection): Task[Option[Collection]] =
         ZIO.attempt {
           db.get(id) match {
             case Some(_) => {
@@ -44,7 +45,7 @@ object CollectionServiceSpec extends ZIOSpecDefault {
           }
         }
 
-      override def updateBySlug(slug: String, userId: Long, collection: Collection): Task[Option[Collection]] =
+      override def updateBySlug(slug: Slug, userId: UserId, collection: Collection): Task[Option[Collection]] =
         ZIO.attempt {
           db.values.find(_.slug == slug) match {
             case Some(c) =>
@@ -54,13 +55,13 @@ object CollectionServiceSpec extends ZIOSpecDefault {
           }
         }
 
-      override def deleteById(id: Long, userId: Long): Task[Boolean] =
+      override def deleteById(id: CollectionId, userId: UserId): Task[Boolean] =
         ZIO.attempt {
           db -= id
           true
         }
 
-      override def deleteBySlug(slug: String, userId: Long): Task[Boolean] =
+      override def deleteBySlug(slug: Slug, userId: UserId): Task[Boolean] =
         ZIO.attempt {
           db.values.find(_.slug == slug) match {
             case Some(c) =>
@@ -74,8 +75,8 @@ object CollectionServiceSpec extends ZIOSpecDefault {
     }
   )
 
-  private val bobUserId    = 1L
-  private val michioUserId = 2L
+  private val bobUserId    = UserId.random
+  private val michioUserId = UserId.random
   private val createCollectionCommand = CreateCollectionCommand(
     userId = bobUserId,
     name = "Norway 1960 1990",
@@ -100,7 +101,7 @@ object CollectionServiceSpec extends ZIOSpecDefault {
         val program = for {
           collection            <- service(_.create(createCollectionCommand))
           userCollectionOpt     <- service(_.getById(collection.id, createCollectionCommand.userId))
-          notFoundCollectionOpt <- service(_.getBySlug(collection.slug, -1L))
+          notFoundCollectionOpt <- service(_.getBySlug(collection.slug, UserId.random))
         } yield (collection, userCollectionOpt, notFoundCollectionOpt)
 
         program.assert { case (collection, userCollectionOpt, notFoundCollectionOpt) =>
@@ -117,7 +118,7 @@ object CollectionServiceSpec extends ZIOSpecDefault {
         val program = for {
           collection            <- service(_.create(createCollectionCommand))
           userCollectionOpt     <- service(_.getBySlug(collection.slug, createCollectionCommand.userId))
-          notFoundCollectionOpt <- service(_.getBySlug(collection.slug, -1L))
+          notFoundCollectionOpt <- service(_.getBySlug(collection.slug, UserId.random))
         } yield (collection, userCollectionOpt, notFoundCollectionOpt)
 
         program.assert { case (collection, userCollectionOpt, notFoundCollectionOpt) =>

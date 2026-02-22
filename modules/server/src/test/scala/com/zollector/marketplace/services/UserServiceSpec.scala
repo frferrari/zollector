@@ -7,11 +7,12 @@ import com.zollector.marketplace.repositories.*
 import com.zollector.marketplace.domain.data.*
 import com.zollector.marketplace.http.requests.*
 import com.zollector.marketplace.services.*
+import com.zollector.marketplace.domain.data.ValueObjects.*
 
 object UserServiceSpec extends ZIOSpecDefault {
 
   val registerBobRequest =
-    RegisterUserRequest("boblazar", "admin@zollector.com", "bobPassword", "bob", "lazar")
+    RegisterUserRequest("boblazar", Email("admin@zollector.com"), "bobPassword", "bob", "lazar")
 
   val updateBobPasswordRequest =
     UpdatePasswordRequest(registerBobRequest.email, registerBobRequest.password, "newPassword")
@@ -23,40 +24,40 @@ object UserServiceSpec extends ZIOSpecDefault {
     LoginRequest(registerBobRequest.email, registerBobRequest.password)
 
   val bobLazar = User(
-    1L,
+    UserId.random,
     registerBobRequest.nickname,
     registerBobRequest.email,
     registerBobRequest.firstName,
     registerBobRequest.lastName,
-    "1000:957CFE57B3A3C7FE1888AA9E00FB2E05E385EE6330A89374:7D59DE2824017BE7ED869B50D41F1A8F3A32AF05E82D2E00",
+    HashedPassword("1000:957CFE57B3A3C7FE1888AA9E00FB2E05E385EE6330A89374:7D59DE2824017BE7ED869B50D41F1A8F3A32AF05E82D2E00"),
     java.time.Instant.now()
   )
 
   val stubRepoLayer = ZLayer.succeed {
     new UserRepository {
-      val db = collection.mutable.Map[Long, User](bobLazar.id -> bobLazar)
+      val db = collection.mutable.Map[UserId, User](bobLazar.id -> bobLazar)
 
       override def create(user: User): Task[User] = ZIO.succeed {
         db += (user.id -> user)
         user
       }
 
-      override def getById(id: Long): Task[Option[User]] = ZIO.succeed(db.get(id))
+      override def getById(id: UserId): Task[Option[User]] = ZIO.succeed(db.get(id))
 
-      override def getByEmail(email: String): Task[Option[User]] =
+      override def getByEmail(email: Email): Task[Option[User]] =
         ZIO.succeed(db.values.find(_.email == email))
 
       override def getByNickname(nickname: String): Task[Option[User]] =
         ZIO.succeed(db.values.find(_.nickname == nickname))
 
-      override def update(id: Long, user: User): Task[User] =
+      override def update(id: UserId, user: User): Task[User] =
         ZIO.attempt {
           val currentUser = db(id)
           db += (id -> user)
           user
         }
 
-      override def delete(id: Long): Task[Boolean] =
+      override def delete(id: UserId): Task[Boolean] =
         ZIO.attempt {
           val user = db(id)
           db -= id
@@ -67,16 +68,16 @@ object UserServiceSpec extends ZIOSpecDefault {
 
   val stubRecoveryTokensRepositoryLayer = ZLayer.succeed {
     new RecoveryTokensRepository {
-      val db = collection.mutable.Map[String, String]()
+      val db = collection.mutable.Map[Email, String]()
 
-      override def getToken(email: String): Task[Option[String]] =
+      override def getToken(email: Email): Task[Option[String]] =
         ZIO.attempt {
           val token = util.Random.alphanumeric.take(8).mkString.toUpperCase()
           db += (email -> token)
           Some(token)
         }
 
-      override def checkToken(email: String, token: String): Task[Boolean] =
+      override def checkToken(email: Email, token: String): Task[Boolean] =
         ZIO.succeed(db.get(email).exists(_ == token))
     }
   }
@@ -92,8 +93,8 @@ object UserServiceSpec extends ZIOSpecDefault {
       override def createToken(user: User): Task[UserToken] =
         ZIO.succeed(UserToken(user.email, "A TOKEN", Long.MaxValue))
 
-      override def verityToken(token: String): Task[UserID] =
-        ZIO.succeed(UserID(bobLazar.id, bobLazar.email))
+      override def verityToken(token: String): Task[UserIdentifier] =
+        ZIO.succeed(UserIdentifier(bobLazar.id, bobLazar.email))
     }
   })
 
@@ -121,7 +122,7 @@ object UserServiceSpec extends ZIOSpecDefault {
       test("invalidate non existent user") {
         for {
           service <- ZIO.service[UserService]
-          valid   <- service.verifyPassword("unknownuser@gmail.com", "wrongpassword")
+          valid   <- service.verifyPassword(Email("unknownuser@gmail.com"), "wrongpassword")
         } yield assertTrue(!valid)
       },
       test("updateById password") {
@@ -137,7 +138,7 @@ object UserServiceSpec extends ZIOSpecDefault {
         for {
           service <- ZIO.service[UserService]
           error <- service
-            .deleteUser(DeleteUserRequest("unknownuser@gmail.com", registerBobRequest.password))
+            .deleteUser(DeleteUserRequest(Email("unknownuser@gmail.com"), registerBobRequest.password))
             .flip
         } yield assertTrue(error.isInstanceOf[RuntimeException])
       },

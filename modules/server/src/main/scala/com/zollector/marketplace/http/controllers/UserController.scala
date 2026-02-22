@@ -30,7 +30,7 @@ class UserController private (userService: UserService, jwtService: JWTService)
 
   val updatePassword: ServerEndpoint[Any, Task] =
     updatePasswordEndpoint
-      .serverSecurityLogic[UserID, Task](token => jwtService.verityToken(token).either)
+      .serverSecurityLogic[UserIdentifier, Task](token => jwtService.verityToken(token).either)
       .serverLogic { userId => req =>
         userService
           .updatePassword(req)
@@ -40,7 +40,7 @@ class UserController private (userService: UserService, jwtService: JWTService)
 
   val delete: ServerEndpoint[Any, Task] =
     deleteEndpoint
-      .serverSecurityLogic[UserID, Task](token => jwtService.verityToken(token).either)
+      .serverSecurityLogic[UserIdentifier, Task](token => jwtService.verityToken(token).either)
       .serverLogic { userId => req =>
         userService
           .deleteUser(req)

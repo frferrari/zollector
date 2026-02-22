@@ -14,6 +14,7 @@ import com.zollector.marketplace.http.controllers.*
 import com.zollector.marketplace.http.requests.*
 import com.zollector.marketplace.repositories.*
 import com.zollector.marketplace.services.*
+import com.zollector.marketplace.domain.data.ValueObjects.Email
 
 object CollectionFlowSpec extends ZIOSpecDefault with RepositorySpec with IntegrationSpec {
 
@@ -28,7 +29,7 @@ object CollectionFlowSpec extends ZIOSpecDefault with RepositorySpec with Integr
   // User Requests
   val registerUserRequestBob = RegisterUserRequest(
     nickname = "boblazar",
-    email = "bob@zollector.com",
+    email = Email("bob@zollector.com"),
     password = "bobPassword",
     firstName = "bob",
     lastName = "lazar"
@@ -37,7 +38,7 @@ object CollectionFlowSpec extends ZIOSpecDefault with RepositorySpec with Integr
 
   private val registerUserRequestMichio = RegisterUserRequest(
     nickname = "michiokaku",
-    email = "michio@zollector.com",
+    email = Email("michio@zollector.com"),
     password = "michioPassword",
     firstName = "michio",
     lastName = "kaku"

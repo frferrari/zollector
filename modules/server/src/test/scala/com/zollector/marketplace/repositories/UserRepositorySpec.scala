@@ -9,38 +9,39 @@ import com.zollector.marketplace.http.requests.RegisterUserRequest
 import com.zollector.marketplace.repositories.*
 
 import java.time.Instant
+import com.zollector.marketplace.domain.data.ValueObjects.*
 
 object UserRepositorySpec extends ZIOSpecDefault with RepositorySpec {
 
   override val initScript: String = "sql/users.sql"
 
   private val user1 = User(
-    id = -1L,
+    id = UserId.random,
     nickname = "boblazar51",
-    email = "boblazar@area51.com",
+    email = Email("boblazar@area51.com"),
     firstName = "Bob",
     lastName = "Lazar",
-    hashedPassword = "mypassword",
+    hashedPassword = HashedPassword("mypassword"),
     createdAt = Instant.now()
   )
 
   private val user2 = User(
-    id = -1,
+    id = UserId.random,
     nickname = "michiokaku",
-    email = "michiokaky@physics.com",
+    email = Email("michiokaky@physics.com"),
     firstName = "Michio",
     lastName = "Kaku",
-    hashedPassword = "hispassword",
+    hashedPassword = HashedPassword("hispassword"),
     createdAt = Instant.now()
   )
 
   private val updatedUser1 = User(
-    id = -1L,
+    id = user1.id,
     nickname = "boblazarfiftyone",
-    email = "boblazar@areafiftyone.com",
+    email = Email("boblazar@areafiftyone.com"),
     firstName = "Boby",
     lastName = "Lazaro",
-    hashedPassword = "Lazarus",
+    hashedPassword = HashedPassword("Lazarus"),
     createdAt = Instant.now()
   )
 
@@ -48,10 +49,20 @@ object UserRepositorySpec extends ZIOSpecDefault with RepositorySpec {
     suite("UserRepositorySpec")(
       test("create a user") {
         for {
-          repo <- ZIO.service[UserRepository]
-          user <- repo.create(user1)
+          repo        <- ZIO.service[UserRepository]
+          userCreated <- repo.create(user1)
+          fetchedUser <- repo.getByEmail(user1.email).someOrFail("Could not fetch user after creation")
         } yield assertTrue(
-          user.id == 1L
+          userCreated.id == user1.id &&
+            userCreated.nickname == user1.nickname &&
+            userCreated.email == user1.email &&
+            userCreated.firstName == user1.firstName &&
+            userCreated.lastName == user1.lastName &&
+            fetchedUser.id == user1.id &&
+            fetchedUser.nickname == user1.nickname &&
+            fetchedUser.email == user1.email &&
+            fetchedUser.firstName == user1.firstName &&
+            fetchedUser.lastName == user1.lastName
         )
       },
       test("get a user by id and email and nickname") {
@@ -90,7 +101,7 @@ object UserRepositorySpec extends ZIOSpecDefault with RepositorySpec {
           isUserDeleted <- repo.delete(user.id)
 
           // Should return false when it fails to deleteById a user
-          isUnknownUserDeleted <- repo.delete(user.id + 1L)
+          isUnknownUserDeleted <- repo.delete(UserId.random)
 
           // Check that the user no longer exists in the DB
           checkById <- repo.getById(user.id)
