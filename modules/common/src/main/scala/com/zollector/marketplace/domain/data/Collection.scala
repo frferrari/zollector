@@ -11,6 +11,7 @@ final case class Collection(
     yearStart: Option[Int] = None,
     yearEnd: Option[Int] = None,
     slug: String,
+    image: Option[String] = None,
     createdAt: Instant,
     updatedAt: Option[Instant] = None
 )

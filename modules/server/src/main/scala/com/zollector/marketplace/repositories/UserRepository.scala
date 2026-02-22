@@ -3,6 +3,7 @@ package com.zollector.marketplace.repositories
 import zio.*
 import io.getquill.*
 import io.getquill.jdbczio.Quill
+
 import com.zollector.marketplace.domain.data.*
 
 trait UserRepository {

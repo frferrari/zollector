@@ -2,11 +2,11 @@ package com.zollector.marketplace.http.controllers
 
 import zio.*
 import sttp.tapir.server.ServerEndpoint
+import com.zollector.marketplace.http.endpoints.*
+import com.zollector.marketplace.http.responses.*
+import com.zollector.marketplace.services.*
 import com.zollector.marketplace.domain.data.*
 import com.zollector.marketplace.domain.errors.*
-import com.zollector.marketplace.http.endpoints.UserEndpoints
-import com.zollector.marketplace.http.responses.UserResponse
-import com.zollector.marketplace.services.*
 
 class UserController private (userService: UserService, jwtService: JWTService)
     extends BaseController

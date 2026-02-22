@@ -10,8 +10,8 @@ import sttp.monad.MonadError
 import sttp.tapir.server.ServerEndpoint
 import sttp.tapir.server.stub.TapirStubInterpreter
 import sttp.tapir.ztapir.RIOMonadError
-import java.time.Instant
 
+import java.time.Instant
 import com.zollector.marketplace.domain.commands.*
 import com.zollector.marketplace.domain.data.*
 import com.zollector.marketplace.http.requests.*
@@ -29,6 +29,7 @@ object CollectionControllerSpec extends ZIOSpecDefault {
     Some(1960),
     Some(1990),
     "france-1960-to-1990",
+    None,
     Instant.now(),
     None
   )

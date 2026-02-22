@@ -4,7 +4,7 @@ import com.zollector.marketplace.domain.data.Collection
 
 import java.time.Instant
 
-case class CreateCollectionCommand(
+case class UpdateCollectionCommand(
     userId: Long,
     name: String,
     description: String,
@@ -12,5 +12,15 @@ case class CreateCollectionCommand(
     yearEnd: Option[Int] = None
 ) {
   def toCollection(id: Long = -1L) =
-    Collection(id, userId, name, description, yearStart, yearEnd, Collection.makeSlug(name), Instant.now())
+    Collection(
+      id = id,
+      userId = userId,
+      name = name,
+      description = description,
+      yearStart = yearStart,
+      yearEnd = yearEnd,
+      slug = Collection.makeSlug(name),
+      image = None,
+      createdAt = Instant.now()
+    )
 }

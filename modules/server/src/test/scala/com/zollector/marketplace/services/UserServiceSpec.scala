@@ -3,9 +3,9 @@ package com.zollector.marketplace.services
 import zio.*
 import zio.test.*
 import zio.test.{Spec, TestEnvironment, ZIOSpecDefault}
+import com.zollector.marketplace.repositories.*
 import com.zollector.marketplace.domain.data.*
 import com.zollector.marketplace.http.requests.*
-import com.zollector.marketplace.repositories.{RecoveryTokensRepository, UserRepository}
 import com.zollector.marketplace.services.*
 
 object UserServiceSpec extends ZIOSpecDefault {

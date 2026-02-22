@@ -8,9 +8,8 @@ import sttp.monad.MonadError
 import sttp.tapir.server.stub.TapirStubInterpreter
 
 import javax.sql.DataSource
-
 import com.zollector.marketplace.config.*
-import com.zollector.marketplace.domain.data.UserToken
+import com.zollector.marketplace.domain.data.*
 import com.zollector.marketplace.http.controllers.*
 import com.zollector.marketplace.http.requests.*
 import com.zollector.marketplace.repositories.*

@@ -1,14 +1,14 @@
 package com.zollector.marketplace.services
 
 import zio.*
-
 import java.security.SecureRandom
 import java.time.Instant
 import javax.crypto.SecretKeyFactory
 import javax.crypto.spec.PBEKeySpec
-import com.zollector.marketplace.repositories.{RecoveryTokensRepository, UserRepository}
-import com.zollector.marketplace.domain.data.*
+
 import com.zollector.marketplace.http.requests.*
+import com.zollector.marketplace.domain.data.*
+import com.zollector.marketplace.repositories.*
 
 trait UserService {
   def registerUser(req: RegisterUserRequest): Task[User]

@@ -2,7 +2,9 @@ package com.zollector.marketplace.components
 
 import com.raquo.laminar.api.L.{*, given}
 import com.raquo.laminar.codecs.*
+import com.zollector.marketplace.common.Constants
 import frontroute.*
+
 import scala.scalajs.js
 import scala.scalajs.js.annotation.*
 
@@ -43,17 +45,13 @@ object Header {
       )
     )
 
-  @js.native
-  @JSImport("url:/static/img/fiery-lava-128-128.png", JSImport.Default)
-  private val logoImage: String = js.native
-
   private def renderLogo() =
     a(
       href := "/",
       cls  := "navbar-brand",
       img(
         cls := "home-logo",
-        src := logoImage,
+        src := Constants.logoImage,
         alt := "Zollector"
       )
     )
@@ -72,13 +70,4 @@ object Header {
       Anchors.renderNavLink(text, location, "nav-link jvm-item")
     )
 
-}
-
-object Anchors {
-  def renderNavLink(text: String, location: String, cssClass: String = "") =
-    a(
-      href := location,
-      cls  := cssClass,
-      text
-    )
 }

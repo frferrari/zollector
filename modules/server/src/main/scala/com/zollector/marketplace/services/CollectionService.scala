@@ -1,10 +1,10 @@
 package com.zollector.marketplace.services
 
 import zio.*
-
+import com.zollector.marketplace.http.requests.*
+import com.zollector.marketplace.domain.data.*
+import com.zollector.marketplace.repositories.*
 import com.zollector.marketplace.domain.commands.*
-import com.zollector.marketplace.domain.data.Collection
-import com.zollector.marketplace.repositories.CollectionRepository
 
 trait CollectionService {
   def create(cmd: CreateCollectionCommand): Task[Collection]

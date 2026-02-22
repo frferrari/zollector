@@ -2,10 +2,10 @@ package com.zollector.marketplace.repositories
 
 import zio.*
 import zio.test.*
-
 import javax.sql.DataSource
+
 import com.zollector.marketplace.domain.commands.*
-import com.zollector.marketplace.domain.data.Collection
+import com.zollector.marketplace.domain.data.*
 import com.zollector.marketplace.repositories.*
 
 object CollectionRepositorySpec extends ZIOSpecDefault with RepositorySpec {

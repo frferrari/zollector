@@ -6,8 +6,10 @@ import com.auth0.jwt.JWTVerifier.BaseVerification
 import com.auth0.jwt.algorithms.Algorithm
 import java.time.Instant
 
-import com.zollector.marketplace.config.{Configs, JWTConfig}
+import com.zollector.marketplace.config.*
+import com.zollector.marketplace.http.requests.*
 import com.zollector.marketplace.domain.data.*
+import com.zollector.marketplace.repositories.*
 
 trait JWTService {
   def createToken(user: User): Task[UserToken]

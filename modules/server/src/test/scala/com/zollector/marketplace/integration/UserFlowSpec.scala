@@ -10,14 +10,13 @@ import sttp.monad.MonadError
 import sttp.tapir.server.stub.TapirStubInterpreter
 import sttp.tapir.ztapir.RIOMonadError
 import sttp.model.Method
-
-import com.zollector.marketplace.config.{JWTConfig, RecoveryTokensConfig}
+import com.zollector.marketplace.config.*
 import com.zollector.marketplace.http.controllers.*
-import com.zollector.marketplace.http.requests.*
-import com.zollector.marketplace.http.responses.*
 import com.zollector.marketplace.repositories.*
 import com.zollector.marketplace.services.*
-import com.zollector.marketplace.domain.data.UserToken
+import com.zollector.marketplace.domain.data.*
+import com.zollector.marketplace.http.requests.*
+import com.zollector.marketplace.http.responses.*
 
 object UserFlowSpec extends ZIOSpecDefault with RepositorySpec with IntegrationSpec {
 

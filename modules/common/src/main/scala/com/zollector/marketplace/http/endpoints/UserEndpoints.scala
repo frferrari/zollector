@@ -3,6 +3,7 @@ package com.zollector.marketplace.http.endpoints
 import sttp.tapir.*
 import sttp.tapir.json.zio.*
 import sttp.tapir.generic.auto.*
+
 import com.zollector.marketplace.http.requests.*
 import com.zollector.marketplace.http.responses.*
 import com.zollector.marketplace.domain.data.*
