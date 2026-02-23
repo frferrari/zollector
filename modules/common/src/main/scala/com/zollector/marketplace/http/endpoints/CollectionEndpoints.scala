@@ -28,6 +28,15 @@ trait CollectionEndpoints extends BaseEndpoint {
       .get
       .out(jsonBody[List[Collection]])
 
+  val getAllTestEndpoint = // TODO Remove this endpoint later
+    baseEndpoint
+      .tag("collections")
+      .name("getAllTest")
+      .description("Get all Collections for all User")
+      .in("collectionstest")
+      .get
+      .out(jsonBody[List[Collection]])
+
   val getByIdEndpoint =
     secureBaseEndpoint
       .tag("collections")

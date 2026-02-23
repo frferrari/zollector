@@ -9,13 +9,14 @@ import sttp.tapir.server.ziohttp.*
 import com.zollector.marketplace.http.HttpApi
 import com.zollector.marketplace.services.*
 import com.zollector.marketplace.repositories.*
+import sttp.tapir.server.interceptor.cors.CORSInterceptor
 
 object Application extends ZIOAppDefault {
 
   val serverProgram = for {
     endpoints <- HttpApi.endpointsZIO
     _ <- Server.serve(
-      ZioHttpInterpreter(ZioHttpServerOptions.default).toHttp(endpoints)
+      ZioHttpInterpreter(ZioHttpServerOptions.default.prependInterceptor(CORSInterceptor.default)).toHttp(endpoints)
     )
     _ <- Console.printLine("... Starting ...")
   } yield ()

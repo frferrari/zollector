@@ -10,6 +10,7 @@ import com.zollector.marketplace.domain.data.ValueObjects.*
 trait CollectionService {
   def create(cmd: CreateCollectionCommand): Task[Collection]
   def getAll(userId: UserId): Task[List[Collection]]
+  def getAllTest: Task[List[Collection]]
   def getById(id: CollectionId, userId: UserId): Task[Option[Collection]]
   def getBySlug(slug: Slug, userId: UserId): Task[Option[Collection]]
   def updateById(id: CollectionId, userId: UserId, cmd: UpdateCollectionCommand): Task[Option[Collection]]
@@ -25,6 +26,9 @@ class CollectionServiceLive private (repo: CollectionRepository) extends Collect
 
   override def getAll(userId: UserId): Task[List[Collection]] =
     repo.getAll(userId)
+
+  override def getAllTest: Task[List[Collection]] =
+    repo.getAllTest
 
   override def getById(id: CollectionId, userId: UserId): Task[Option[Collection]] =
     repo.getById(id, userId)

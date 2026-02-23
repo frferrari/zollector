@@ -1,29 +1,23 @@
 package com.zollector.marketplace.pages
 
 import com.raquo.laminar.api.L.{*, given}
-import com.raquo.laminar.codecs.*
 import com.zollector.marketplace.common.Constants
 import com.zollector.marketplace.components.Anchors
+import com.zollector.marketplace.core.ZioLaminar.*
 import com.zollector.marketplace.domain.data.Collection
 import com.zollector.marketplace.domain.data.ValueObjects.*
-import org.scalajs.dom
-import frontroute.*
 
 object CollectionsPage {
-  val dummyCollection = Collection(
-    CollectionId.random,
-    UserId.random,
-    "Finland 1960 1990",
-    "Stamps from Finland 1960 to 1990 MNH",
-    Some(1960),
-    Some(1990),
-    Slug("finland-1960-1990"),
-    None,
-    java.time.Instant.now()
-  )
+  val collectionsBus = EventBus[List[Collection]]()
+
+  def performBackendCall(): Unit = {
+    val collectionsZIO = useBackend(_.collectionEndpoints.getAllTestEndpoint(()))
+    collectionsZIO.emitTo(collectionsBus)
+  }
 
   def apply() =
     sectionTag(
+      onMountCallback(_ => performBackendCall()),
       cls := "section-1",
       div(
         cls := "container company-list-hero",
@@ -42,8 +36,7 @@ object CollectionsPage {
           ),
           div(
             cls := "col-lg-8",
-            renderCollection(dummyCollection),
-            renderCollection(dummyCollection)
+            children <-- collectionsBus.events.map(_.map(renderCollection))
           )
         )
       )

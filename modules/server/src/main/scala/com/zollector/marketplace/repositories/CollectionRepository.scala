@@ -13,13 +13,16 @@ trait CollectionRepository {
   def getById(id: CollectionId, userId: UserId): Task[Option[Collection]]
   def getBySlug(slug: Slug, userId: UserId): Task[Option[Collection]]
   def getAll(userId: UserId): Task[List[Collection]]
+  def getAllTest: Task[List[Collection]]
   def updateById(id: CollectionId, userId: UserId, collection: Collection): Task[Option[Collection]]
   def updateBySlug(slug: Slug, userId: UserId, collection: Collection): Task[Option[Collection]]
   def deleteById(id: CollectionId, userId: UserId): Task[Boolean]
   def deleteBySlug(slug: Slug, userId: UserId): Task[Boolean]
 }
 
-class CollectionRepositoryLive private (quill: Quill.Postgres[SnakeCase]) extends CollectionRepository with QuillMappings {
+class CollectionRepositoryLive private (quill: Quill.Postgres[SnakeCase])
+    extends CollectionRepository
+    with QuillMappings {
 
   import quill.*
 
@@ -46,6 +49,9 @@ class CollectionRepositoryLive private (quill: Quill.Postgres[SnakeCase]) extend
 
   override def getAll(userId: UserId): Task[List[Collection]] =
     run(query[Collection].filter(_.userId == lift(userId)))
+
+  override def getAllTest: Task[List[Collection]] =
+    run(query[Collection])
 
   override def updateById(id: CollectionId, userId: UserId, collection: Collection): Task[Option[Collection]] =
     run {

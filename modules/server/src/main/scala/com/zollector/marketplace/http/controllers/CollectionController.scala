@@ -25,6 +25,10 @@ class CollectionController private (service: CollectionService, jwtService: JWTS
       .serverSecurityLogic[UserIdentifier, Task](token => jwtService.verityToken(token).either)
       .serverLogic { userId => _ => service.getAll(userId.id).either }
 
+  val getAllTest: ServerEndpoint[Any, Task] =
+    getAllTestEndpoint
+      .serverLogicSuccess[Task](_ => service.getAllTest)
+
   val getById: ServerEndpoint[Any, Task] =
     getByIdEndpoint
       .serverSecurityLogic[UserIdentifier, Task](token => jwtService.verityToken(token).either)
@@ -53,7 +57,7 @@ class CollectionController private (service: CollectionService, jwtService: JWTS
       }
 
   override val routes: List[ServerEndpoint[Any, Task]] =
-    List(create, getAll, getById, updateCollection, deleteCollection)
+    List(create, getAll, getAllTest, getById, updateCollection, deleteCollection)
 }
 
 object CollectionController {
