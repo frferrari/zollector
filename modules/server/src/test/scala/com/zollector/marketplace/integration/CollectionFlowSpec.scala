@@ -14,7 +14,8 @@ import com.zollector.marketplace.http.controllers.*
 import com.zollector.marketplace.http.requests.*
 import com.zollector.marketplace.repositories.*
 import com.zollector.marketplace.services.*
-import com.zollector.marketplace.domain.data.ValueObjects.Email
+import com.zollector.marketplace.domain.data.ValueObjects.{CategoryId, Email, FamilyId}
+import com.zollector.marketplace.repositories.referential.CategoryRepositoryLive
 
 object CollectionFlowSpec extends ZIOSpecDefault with RepositorySpec with IntegrationSpec {
 
@@ -46,25 +47,36 @@ object CollectionFlowSpec extends ZIOSpecDefault with RepositorySpec with Integr
   private val loginUserRequestMichio = LoginRequest(registerUserRequestMichio.email, registerUserRequestMichio.password)
 
   // Collection Requests
+  private val postageStampsCategoryId = CategoryId(1L)
+  private val singleStampsFamilyId    = FamilyId(1L)
+
   private val createBobCollectionRequest = CreateCollectionRequest(
+    categoryId = postageStampsCategoryId,
+    familyId = singleStampsFamilyId,
     name = "Norway 1960 1990",
     description = "Stamps of Norway from 1960 to 1990",
     yearStart = Some(1960),
     yearEnd = Some(1990)
   )
   private val updateBobCollectionRequest = UpdateCollectionRequest(
+    categoryId = postageStampsCategoryId,
+    familyId = singleStampsFamilyId,
     name = "Norway 1950 2000",
     description = "Stamps of Norway from 1950 to 2000",
     yearStart = Some(1950),
     yearEnd = Some(2000)
   )
   private val createMichioCollectionRequest = CreateCollectionRequest(
+    categoryId = postageStampsCategoryId,
+    familyId = singleStampsFamilyId,
     name = "Finland 1950 1980",
     description = "Stamps of Finland from 1950 to 1980",
     yearStart = Some(1950),
     yearEnd = Some(1980)
   )
   private val updateMichioCollectionRequest = UpdateCollectionRequest(
+    categoryId = postageStampsCategoryId,
+    familyId = singleStampsFamilyId,
     name = "Finland 1970 2010",
     description = "Stamps of Finland from 1970 to 2010",
     yearStart = Some(1970),
@@ -143,11 +155,15 @@ object CollectionFlowSpec extends ZIOSpecDefault with RepositorySpec with Integr
           updatedBobCollectionResponse.nonEmpty &&
             updatedMichioCollectionResponse.isEmpty &&
             bobCollectionAfterUpdate.id == bobCollection.id &&
+            bobCollectionAfterUpdate.categoryId == bobCollection.categoryId &&
+            bobCollectionAfterUpdate.familyId == bobCollection.familyId &&
             bobCollectionAfterUpdate.name == updateBobCollectionRequest.name &&
             bobCollectionAfterUpdate.description == updateBobCollectionRequest.description &&
             bobCollectionAfterUpdate.yearStart == updateBobCollectionRequest.yearStart &&
             bobCollectionAfterUpdate.yearEnd == updateBobCollectionRequest.yearEnd &&
             michioCollectionAfterUpdate.id == michioCollection.id &&
+            michioCollectionAfterUpdate.categoryId == michioCollection.categoryId &&
+            michioCollectionAfterUpdate.familyId == michioCollection.familyId &&
             michioCollectionAfterUpdate.name == createMichioCollectionRequest.name &&
             michioCollectionAfterUpdate.description == createMichioCollectionRequest.description &&
             michioCollectionAfterUpdate.yearStart == createMichioCollectionRequest.yearStart &&
@@ -189,6 +205,7 @@ object CollectionFlowSpec extends ZIOSpecDefault with RepositorySpec with Integr
     UserRepositoryLive.layer,
     CollectionServiceLive.layer,
     CollectionRepositoryLive.layer,
+    CategoryRepositoryLive.layer,
     Repository.quillLayer,
     RecoveryTokensRepositoryLive.layer,
     ZLayer.succeed(RecoveryTokensConfig(24 * 3600)),

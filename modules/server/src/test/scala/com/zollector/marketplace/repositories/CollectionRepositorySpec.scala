@@ -16,8 +16,13 @@ object CollectionRepositorySpec extends ZIOSpecDefault with RepositorySpec {
   private val bobUserId    = UserId.random
   private val michioUserId = UserId.random
 
+  private val postageStampsCategoryId = CategoryId(1L)
+  private val singleStampsFamilyId    = FamilyId(1L)
+
   private val bobCollectionA = CreateCollectionCommand(
     userId = bobUserId,
+    categoryId = postageStampsCategoryId,
+    familyId = singleStampsFamilyId,
     name = "Norway 1960 1990",
     description = "Stamps of Norway from 1960 to 1990",
     yearStart = Some(1960),
@@ -26,6 +31,8 @@ object CollectionRepositorySpec extends ZIOSpecDefault with RepositorySpec {
 
   private val bobCollectionB = CreateCollectionCommand(
     userId = bobUserId,
+    categoryId = postageStampsCategoryId,
+    familyId = singleStampsFamilyId,
     name = "Sweden 1940 1970",
     description = "Stamps of Sweden from 1940 to 1970",
     yearStart = Some(1940),
@@ -34,6 +41,8 @@ object CollectionRepositorySpec extends ZIOSpecDefault with RepositorySpec {
 
   private val michioCollectionA = CreateCollectionCommand(
     userId = michioUserId,
+    categoryId = postageStampsCategoryId,
+    familyId = singleStampsFamilyId,
     name = "Finland 1930 1980",
     description = "Stamps of Finland from 1930 to 1980",
     yearStart = Some(1930),
@@ -67,12 +76,17 @@ object CollectionRepositorySpec extends ZIOSpecDefault with RepositorySpec {
         } yield assertTrue(
           collectionCreated.id == bobCollectionA.id &&
             collectionCreated.userId == bobCollectionA.userId &&
+            collectionCreated.categoryId == bobCollectionA.categoryId &&
+            collectionCreated.familyId == bobCollectionA.familyId &&
             collectionCreated.name == bobCollectionA.name &&
             collectionCreated.description == bobCollectionA.description &&
             collectionCreated.yearStart == bobCollectionA.yearStart &&
             collectionCreated.yearEnd == bobCollectionA.yearEnd &&
+            //
             fetchedCollection.id == bobCollectionA.id &&
             fetchedCollection.userId == bobCollectionA.userId &&
+            fetchedCollection.categoryId == bobCollectionA.categoryId &&
+            fetchedCollection.familyId == bobCollectionA.familyId &&
             fetchedCollection.name == bobCollectionA.name &&
             fetchedCollection.description == bobCollectionA.description &&
             fetchedCollection.yearStart == bobCollectionA.yearStart &&
@@ -114,6 +128,8 @@ object CollectionRepositorySpec extends ZIOSpecDefault with RepositorySpec {
           fetchedBobCollectionB <- repo.getById(bobCollectionB.id, bobCollectionB.userId)
         } yield assertTrue(
           updatedCollectionA.map(_.id).contains(bobCollectionA.id) &&
+            updatedCollectionA.map(_.categoryId).contains(bobCollectionAupdated.categoryId) &&
+            updatedCollectionA.map(_.familyId).contains(bobCollectionAupdated.familyId) &&
             updatedCollectionA.map(_.name).contains(bobCollectionAupdated.name) &&
             updatedCollectionA.map(_.description).contains(bobCollectionAupdated.description) &&
             updatedCollectionA.map(_.yearStart).contains(bobCollectionAupdated.yearStart) &&
@@ -122,6 +138,8 @@ object CollectionRepositorySpec extends ZIOSpecDefault with RepositorySpec {
             //
             fetchedBobCollectionB.map(_.id).contains(bobCollectionB.id) &&
             fetchedBobCollectionB.map(_.name).contains(bobCollectionB.name) &&
+            fetchedBobCollectionB.map(_.categoryId).contains(bobCollectionB.categoryId) &&
+            fetchedBobCollectionB.map(_.familyId).contains(bobCollectionB.familyId) &&
             fetchedBobCollectionB.map(_.description).contains(bobCollectionB.description) &&
             fetchedBobCollectionB.map(_.yearStart).contains(bobCollectionB.yearStart) &&
             fetchedBobCollectionB.map(_.yearEnd).contains(bobCollectionB.yearEnd) &&
@@ -138,6 +156,8 @@ object CollectionRepositorySpec extends ZIOSpecDefault with RepositorySpec {
         } yield assertTrue(
           updatedCollectionA.map(_.id).contains(bobCollectionA.id) &&
             updatedCollectionA.map(_.name).contains(bobCollectionAupdated.name) &&
+            updatedCollectionA.map(_.categoryId).contains(bobCollectionAupdated.categoryId) &&
+            updatedCollectionA.map(_.familyId).contains(bobCollectionAupdated.familyId) &&
             updatedCollectionA.map(_.description).contains(bobCollectionAupdated.description) &&
             updatedCollectionA.map(_.yearStart).contains(bobCollectionAupdated.yearStart) &&
             updatedCollectionA.map(_.yearEnd).contains(bobCollectionAupdated.yearEnd) &&
@@ -145,6 +165,8 @@ object CollectionRepositorySpec extends ZIOSpecDefault with RepositorySpec {
             //
             fetchedBobCollectionB.map(_.id).contains(bobCollectionB.id) &&
             fetchedBobCollectionB.map(_.name).contains(bobCollectionB.name) &&
+            fetchedBobCollectionB.map(_.categoryId).contains(bobCollectionB.categoryId) &&
+            fetchedBobCollectionB.map(_.familyId).contains(bobCollectionB.familyId) &&
             fetchedBobCollectionB.map(_.description).contains(bobCollectionB.description) &&
             fetchedBobCollectionB.map(_.yearStart).contains(bobCollectionB.yearStart) &&
             fetchedBobCollectionB.map(_.yearEnd).contains(bobCollectionB.yearEnd) &&

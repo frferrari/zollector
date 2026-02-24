@@ -64,4 +64,14 @@ trait CollectionEndpoints extends BaseEndpoint {
       .in("collections" / path[CollectionId]("id"))
       .delete
       .out(jsonBody[Boolean])
+
+  val allFiltersEndpoint =
+    baseEndpoint
+      .tag("collections")
+      .name("allFilters")
+      .description("")
+      .in("collections" / "filters")
+      .get
+      .out(jsonBody[CollectionFilter])
+
 }

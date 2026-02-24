@@ -16,7 +16,17 @@ class CollectionController private (service: CollectionService, jwtService: JWTS
       .serverSecurityLogic[UserIdentifier, Task](token => jwtService.verityToken(token).either)
       .serverLogic { userId => req =>
         service
-          .create(CreateCollectionCommand(userId.id, req.name, req.description, req.yearStart, req.yearEnd))
+          .create(
+            CreateCollectionCommand(
+              userId.id,
+              req.categoryId,
+              req.familyId,
+              req.name,
+              req.description,
+              req.yearStart,
+              req.yearEnd
+            )
+          )
           .either
       }
 
@@ -44,7 +54,15 @@ class CollectionController private (service: CollectionService, jwtService: JWTS
           .updateById(
             collectionId,
             userId.id,
-            UpdateCollectionCommand(userId.id, req.name, req.description, req.yearStart, req.yearEnd)
+            UpdateCollectionCommand(
+              userId.id,
+              req.categoryId,
+              req.familyId,
+              req.name,
+              req.description,
+              req.yearStart,
+              req.yearEnd
+            )
           )
           .either
       }
@@ -56,8 +74,12 @@ class CollectionController private (service: CollectionService, jwtService: JWTS
         service.deleteById(collectionId, userId.id).either
       }
 
+  val allFilters: ServerEndpoint[Any, Task] =
+    allFiltersEndpoint
+      .serverLogic { _ => service.allFilters().either }
+
   override val routes: List[ServerEndpoint[Any, Task]] =
-    List(create, getAll, getAllTest, getById, updateCollection, deleteCollection)
+    List(create, getAll, getAllTest, allFilters, getById, updateCollection, deleteCollection)
 }
 
 object CollectionController {

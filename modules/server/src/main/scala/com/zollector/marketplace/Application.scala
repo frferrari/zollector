@@ -9,6 +9,7 @@ import sttp.tapir.server.ziohttp.*
 import com.zollector.marketplace.http.HttpApi
 import com.zollector.marketplace.services.*
 import com.zollector.marketplace.repositories.*
+import com.zollector.marketplace.repositories.referential.*
 import sttp.tapir.server.interceptor.cors.CORSInterceptor
 
 object Application extends ZIOAppDefault {
@@ -30,6 +31,7 @@ object Application extends ZIOAppDefault {
     EmailServiceLive.configuredLayer,
     // repos
     CollectionRepositoryLive.layer,
+    CategoryRepositoryLive.layer,
     UserRepositoryLive.layer,
     RecoveryTokensRepositoryLive.configuredLayer,
     // other requirements

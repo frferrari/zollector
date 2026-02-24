@@ -19,6 +19,13 @@ A project based on the zio-rite-of-passage course from RockTheJVM
 - Insert data in the db
 
 ```
-insert into collections values (gen_random_uuid(), gen_random_uuid(), 'Finland 1960 1990', 'Stamps from Finland 1960 to 1990', 1960, 1990, 'finland-1960-1990', null, now(), null);
-insert into collections values (gen_random_uuid(), gen_random_uuid(), 'Norway 1950 2000', 'Stamps from Norway 1950 to 2000', 1950, 2000, 'norway-1950-2000', null, now(), null);
+insert into collections values (gen_random_uuid(), gen_random_uuid(), 1, 1, 'Finland 1960 1990', 'Stamps from Finland 1960 to 1990', 1960, 1990, 'finland-1960-1990', null, now(), null);
+insert into collections values (gen_random_uuid(), gen_random_uuid(), 1, 1, 'Norway 1950 2000', 'Stamps from Norway 1950 to 2000', 1950, 2000, 'norway-1950-2000', null, now(), null);
+```
+
+- Load category and category_translations
+
+```
+docker exec -i postgres_zollector psql -U zollector -d zollector_dev < ../dumps/category.sql
+docker exec -i postgres_zollector psql -U zollector -d zollector_dev < ../dumps/category_translations.sql
 ```

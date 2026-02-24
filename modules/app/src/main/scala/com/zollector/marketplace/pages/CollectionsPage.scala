@@ -2,7 +2,7 @@ package com.zollector.marketplace.pages
 
 import com.raquo.laminar.api.L.{*, given}
 import com.zollector.marketplace.common.Constants
-import com.zollector.marketplace.components.Anchors
+import com.zollector.marketplace.components.{Anchors, FilterPanel}
 import com.zollector.marketplace.core.ZioLaminar.*
 import com.zollector.marketplace.domain.data.Collection
 import com.zollector.marketplace.domain.data.ValueObjects.*
@@ -11,7 +11,7 @@ object CollectionsPage {
   val collectionsBus = EventBus[List[Collection]]()
 
   def performBackendCall(): Unit = {
-    val collectionsZIO = useBackend(_.collectionEndpoints.getAllTestEndpoint(()))
+    val collectionsZIO = useBackend(_.collection.getAllTestEndpoint(()))
     collectionsZIO.emitTo(collectionsBus)
   }
 
@@ -32,7 +32,7 @@ object CollectionsPage {
           cls := "row jvm-recent-companies-body",
           div(
             cls := "col-lg-4",
-            div("TODO filter panel here")
+            FilterPanel()
           ),
           div(
             cls := "col-lg-8",

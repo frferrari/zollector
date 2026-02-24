@@ -2,18 +2,19 @@ package com.zollector.marketplace.services
 
 import zio.*
 import zio.test.*
-
-import com.zollector.marketplace.domain.commands.CreateCollectionCommand
-import com.zollector.marketplace.domain.data.Collection
-import com.zollector.marketplace.repositories.CollectionRepository
+import com.zollector.marketplace.domain.commands.*
+import com.zollector.marketplace.domain.data.*
+import com.zollector.marketplace.repositories.*
+import com.zollector.marketplace.repositories.referential.*
 import com.zollector.marketplace.syntax.*
 import com.zollector.marketplace.domain.data.ValueObjects.*
+import com.zollector.marketplace.domain.data.referential.{Category, CategoryTranslation, LocalizedCategory}
 
 object CollectionServiceSpec extends ZIOSpecDefault {
 
   val service = ZIO.serviceWithZIO[CollectionService]
 
-  val stubRepositoryLayer = ZLayer.succeed(
+  val stubCollectionRepositoryLayer = ZLayer.succeed(
     new CollectionRepository {
       val db = collection.mutable.Map[CollectionId, Collection]()
 
@@ -33,6 +34,9 @@ object CollectionServiceSpec extends ZIOSpecDefault {
 
       override def getAll(userId: UserId): Task[List[Collection]] =
         ZIO.succeed(db.values.filter(_.userId == userId).toList)
+
+      override def getAllTest: Task[List[Collection]] =
+        ZIO.succeed(db.values.toList)
 
       override def updateById(id: CollectionId, userId: UserId, collection: Collection): Task[Option[Collection]] =
         ZIO.attempt {
@@ -75,10 +79,34 @@ object CollectionServiceSpec extends ZIOSpecDefault {
     }
   )
 
+  val stubCategoryRepositoryLayer = ZLayer.succeed(
+    new CategoryRepository {
+      def create(category: Category, translations: List[CategoryTranslation]): Task[Category] =
+        ZIO.fail(new RuntimeException("Not implemented"))
+
+      def getById(categoryId: CategoryId): Task[Option[(Category, List[CategoryTranslation])]] =
+        ZIO.fail(new RuntimeException("Not implemented"))
+
+      def getAllLocalized(language: LanguageCode): Task[List[LocalizedCategory]] =
+        ZIO.succeed(
+          List(
+            LocalizedCategory(CategoryId(1L), "Stamps", "Postage stamps, sheetlets, blocs", Slug("stamps")),
+            LocalizedCategory(CategoryId(2L), "Postcards", "Postcards and QSL cards", Slug(""))
+          )
+        )
+    }
+  )
+
   private val bobUserId    = UserId.random
   private val michioUserId = UserId.random
+
+  private val postageStampsCategoryId = CategoryId(1L)
+  private val singleStampsFamilyId    = FamilyId(1L)
+
   private val createCollectionCommand = CreateCollectionCommand(
     userId = bobUserId,
+    categoryId = postageStampsCategoryId,
+    familyId = singleStampsFamilyId,
     name = "Norway 1960 1990",
     description = "Stamps of Norway from 1960 to 1990",
     yearStart = Some(1960),
@@ -91,6 +119,8 @@ object CollectionServiceSpec extends ZIOSpecDefault {
         val collectionZIO = service(_.create(createCollectionCommand))
 
         collectionZIO.assert { collection =>
+          collection.categoryId == createCollectionCommand.categoryId &&
+          collection.familyId == createCollectionCommand.familyId &&
           collection.name == createCollectionCommand.name &&
           collection.description == createCollectionCommand.description &&
           collection.yearStart == createCollectionCommand.yearStart &&
@@ -104,14 +134,17 @@ object CollectionServiceSpec extends ZIOSpecDefault {
           notFoundCollectionOpt <- service(_.getBySlug(collection.slug, UserId.random))
         } yield (collection, userCollectionOpt, notFoundCollectionOpt)
 
-        program.assert { case (collection, userCollectionOpt, notFoundCollectionOpt) =>
-          userCollectionOpt.map(_.id).contains(collection.id) &&
-          userCollectionOpt.map(_.name).contains(createCollectionCommand.name) &&
-          userCollectionOpt.map(_.description).contains(createCollectionCommand.description) &&
-          userCollectionOpt.map(_.yearStart).contains(createCollectionCommand.yearStart) &&
-          userCollectionOpt.map(_.yearEnd).contains(createCollectionCommand.yearEnd) &&
-          userCollectionOpt.map(_.slug).contains(collection.slug) &&
-          notFoundCollectionOpt.isEmpty
+        program.assert {
+          case (collection, userCollectionOpt: Option[Collection], notFoundCollectionOpt: Option[Collection]) =>
+            userCollectionOpt.map(_.id).contains(collection.id) &&
+            userCollectionOpt.map(_.categoryId).contains(createCollectionCommand.categoryId) &&
+            userCollectionOpt.map(_.familyId).contains(createCollectionCommand.familyId) &&
+            userCollectionOpt.map(_.name).contains(createCollectionCommand.name) &&
+            userCollectionOpt.map(_.description).contains(createCollectionCommand.description) &&
+            userCollectionOpt.map(_.yearStart).contains(createCollectionCommand.yearStart) &&
+            userCollectionOpt.map(_.yearEnd).contains(createCollectionCommand.yearEnd) &&
+            userCollectionOpt.map(_.slug).contains(collection.slug) &&
+            notFoundCollectionOpt.isEmpty
         }
       },
       test("getBySlug returns the collection matching the slug and the user") {
@@ -121,8 +154,10 @@ object CollectionServiceSpec extends ZIOSpecDefault {
           notFoundCollectionOpt <- service(_.getBySlug(collection.slug, UserId.random))
         } yield (collection, userCollectionOpt, notFoundCollectionOpt)
 
-        program.assert { case (collection, userCollectionOpt, notFoundCollectionOpt) =>
+        program.assert { case (collection, userCollectionOpt: Option[Collection], notFoundCollectionOpt) =>
           userCollectionOpt.map(_.id).contains(collection.id) &&
+          userCollectionOpt.map(_.categoryId).contains(createCollectionCommand.categoryId) &&
+          userCollectionOpt.map(_.familyId).contains(createCollectionCommand.familyId) &&
           userCollectionOpt.map(_.name).contains(createCollectionCommand.name) &&
           userCollectionOpt.map(_.description).contains(createCollectionCommand.description) &&
           userCollectionOpt.map(_.yearStart).contains(createCollectionCommand.yearStart) &&
@@ -137,6 +172,8 @@ object CollectionServiceSpec extends ZIOSpecDefault {
             _.create(
               CreateCollectionCommand(
                 userId = bobUserId,
+                categoryId = postageStampsCategoryId,
+                familyId = singleStampsFamilyId,
                 name = "Norway 1960 1990",
                 description = "Stamps of Norway from 1960 to 1990",
                 yearStart = Some(1960),
@@ -148,6 +185,8 @@ object CollectionServiceSpec extends ZIOSpecDefault {
             _.create(
               CreateCollectionCommand(
                 userId = bobUserId,
+                categoryId = postageStampsCategoryId,
+                familyId = singleStampsFamilyId,
                 name = "Finland 1950 2000",
                 description = "Stamps of Finland from 1950 to 2000",
                 yearStart = Some(1950),
@@ -159,6 +198,8 @@ object CollectionServiceSpec extends ZIOSpecDefault {
             _.create(
               CreateCollectionCommand(
                 userId = michioUserId,
+                categoryId = postageStampsCategoryId,
+                familyId = singleStampsFamilyId,
                 name = "Sweden 1950 2000",
                 description = "Stamps of Sweden from 1950 to 2000",
                 yearStart = Some(1950),
@@ -175,5 +216,9 @@ object CollectionServiceSpec extends ZIOSpecDefault {
           michioCollections.toSet == Set(michioCollection1)
         }
       }
-    ).provide(CollectionServiceLive.layer, stubRepositoryLayer)
+    ).provide(
+      CollectionServiceLive.layer,
+      stubCollectionRepositoryLayer,
+      stubCategoryRepositoryLayer
+    )
 }

@@ -8,6 +8,8 @@ import java.time.Instant
 final case class Collection(
     id: CollectionId,
     userId: UserId,
+    categoryId: CategoryId,
+    familyId: FamilyId,
     name: String,
     description: String,
     yearStart: Option[Int] = None,

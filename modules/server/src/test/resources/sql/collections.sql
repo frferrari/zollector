@@ -1,6 +1,8 @@
 CREATE TABLE collections (
     id uuid     PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id     uuid NOT NULL,
+    category_id BIGINT NOT NULL,
+    family_id   BIGINT NOT NULL,
     name        TEXT NOT NULL,
     description TEXT NOT NULL,
     year_start  INT NULL,

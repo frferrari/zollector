@@ -6,8 +6,10 @@ import com.zollector.marketplace.domain.data.ValueObjects.*
 import java.time.Instant
 import java.util.UUID
 
-case class CreateCollectionCommand(
+final case class CreateCollectionCommand(
     userId: UserId,
+    categoryId: CategoryId,
+    familyId: FamilyId,
     name: String,
     description: String,
     yearStart: Option[Int] = None,
@@ -17,6 +19,8 @@ case class CreateCollectionCommand(
     Collection(
       id = collectionId,
       userId = userId,
+      categoryId = categoryId,
+      familyId = familyId,
       name = name,
       description = description,
       yearStart = yearStart,

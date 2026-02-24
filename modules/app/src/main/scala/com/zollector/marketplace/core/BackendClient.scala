@@ -14,7 +14,7 @@ import zio.URLayer
 import zio.ULayer
 
 trait BackendClient {
-  val collectionEndpoints: CollectionEndpoints
+  val collection: CollectionEndpoints
   def endpointRequestZIO[I, E <: Throwable, O](endpoint: Endpoint[Unit, I, E, O, Any])(payload: I): Task[O]
 }
 
@@ -23,7 +23,7 @@ class BackendClientLive(
     interpreter: SttpClientInterpreter,
     config: BackendClientConfig
 ) extends BackendClient {
-  override val collectionEndpoints: CollectionEndpoints = new CollectionEndpoints {}
+  override val collection: CollectionEndpoints = new CollectionEndpoints {}
 
   private def endpointRequest[I, E, O](endpoint: Endpoint[Unit, I, E, O, Any]): I => Request[Either[E, O], Any] =
     interpreter

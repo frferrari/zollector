@@ -22,9 +22,14 @@ import com.zollector.marketplace.syntax.*
 object CollectionControllerSpec extends ZIOSpecDefault {
   private given zioMonadError: MonadError[Task] = new RIOMonadError[Any]
 
+  private val postageStampsCategoryId = CategoryId(1L)
+  private val singleStampsFamilyId    = FamilyId(1L)
+
   private val FranceCollection = Collection(
     CollectionId.random,
     UserId.random,
+    postageStampsCategoryId,
+    singleStampsFamilyId,
     "France 1960 to 1990",
     "Stamps from France",
     Some(1960),
@@ -52,6 +57,9 @@ object CollectionControllerSpec extends ZIOSpecDefault {
     override def getAll(userId: UserId): Task[List[Collection]] =
       ZIO.succeed(List(FranceCollection))
 
+    override def getAllTest: Task[List[Collection]] =
+      ZIO.succeed(List(FranceCollection))
+
     override def updateById(id: CollectionId, userId: UserId, cmd: UpdateCollectionCommand): Task[Option[Collection]] =
       ZIO.succeed {
         if (id == FranceCollection.id && userId == FranceCollection.userId) Some(cmd.toCollection())
@@ -67,6 +75,9 @@ object CollectionControllerSpec extends ZIOSpecDefault {
     }
 
     override def deleteBySlug(slug: Slug, userId: UserId): Task[Boolean] = ZIO.succeed(false)
+
+    override def allFilters(languageCode: LanguageCode = LanguageCode.EN): Task[CollectionFilter] =
+      ZIO.fail(new RuntimeException("Not implemented yet"))
   }
 
   private val jwtServiceStub = new JWTService {
@@ -95,6 +106,8 @@ object CollectionControllerSpec extends ZIOSpecDefault {
             .post(uri"/collections")
             .body(
               CreateCollectionRequest(
+                FranceCollection.categoryId,
+                FranceCollection.familyId,
                 FranceCollection.name,
                 FranceCollection.description
               ).toJson
@@ -146,6 +159,8 @@ object CollectionControllerSpec extends ZIOSpecDefault {
             .put(uri"/collections/${FranceCollection.id}")
             .body(
               UpdateCollectionRequest(
+                FranceCollection.categoryId,
+                FranceCollection.familyId,
                 FranceCollection.name,
                 FranceCollection.description
               ).toJson

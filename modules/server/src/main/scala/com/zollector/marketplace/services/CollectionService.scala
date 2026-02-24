@@ -6,6 +6,7 @@ import com.zollector.marketplace.domain.data.*
 import com.zollector.marketplace.repositories.*
 import com.zollector.marketplace.domain.commands.*
 import com.zollector.marketplace.domain.data.ValueObjects.*
+import com.zollector.marketplace.repositories.referential.CategoryRepository
 
 trait CollectionService {
   def create(cmd: CreateCollectionCommand): Task[Collection]
@@ -17,42 +18,50 @@ trait CollectionService {
   def updateBySlug(slug: Slug, userId: UserId, cmd: UpdateCollectionCommand): Task[Option[Collection]]
   def deleteById(id: CollectionId, userId: UserId): Task[Boolean]
   def deleteBySlug(slug: Slug, userId: UserId): Task[Boolean]
+  def allFilters(languageCode: LanguageCode = LanguageCode.EN): Task[CollectionFilter]
 }
 
-class CollectionServiceLive private (repo: CollectionRepository) extends CollectionService {
+class CollectionServiceLive private (collectionRepo: CollectionRepository, categoryRepo: CategoryRepository)
+    extends CollectionService {
 
   override def create(cmd: CreateCollectionCommand): Task[Collection] =
-    repo.create(cmd.toCollection())
+    collectionRepo.create(cmd.toCollection())
 
   override def getAll(userId: UserId): Task[List[Collection]] =
-    repo.getAll(userId)
+    collectionRepo.getAll(userId)
 
   override def getAllTest: Task[List[Collection]] =
-    repo.getAllTest
+    collectionRepo.getAllTest
 
   override def getById(id: CollectionId, userId: UserId): Task[Option[Collection]] =
-    repo.getById(id, userId)
+    collectionRepo.getById(id, userId)
 
   override def getBySlug(slug: Slug, userId: UserId): Task[Option[Collection]] =
-    repo.getBySlug(slug, userId)
+    collectionRepo.getBySlug(slug, userId)
 
   override def updateById(id: CollectionId, userId: UserId, cmd: UpdateCollectionCommand): Task[Option[Collection]] =
-    repo.updateById(id, userId, cmd.toCollection())
+    collectionRepo.updateById(id, userId, cmd.toCollection())
 
   override def updateBySlug(slug: Slug, userId: UserId, cmd: UpdateCollectionCommand): Task[Option[Collection]] =
-    repo.updateBySlug(slug, userId, cmd.toCollection())
+    collectionRepo.updateBySlug(slug, userId, cmd.toCollection())
 
   override def deleteById(id: CollectionId, userId: UserId): Task[Boolean] =
-    repo.deleteById(id, userId)
+    collectionRepo.deleteById(id, userId)
 
   override def deleteBySlug(slug: Slug, userId: UserId): Task[Boolean] =
-    repo.deleteBySlug(slug, userId)
+    collectionRepo.deleteBySlug(slug, userId)
+
+  override def allFilters(languageCode: LanguageCode = LanguageCode.EN): Task[CollectionFilter] =
+    for {
+      categories <- categoryRepo.getAllLocalized(languageCode)
+    } yield CollectionFilter(categories)
 }
 
 object CollectionServiceLive {
   val layer = ZLayer {
     for {
-      repo <- ZIO.service[CollectionRepository]
-    } yield new CollectionServiceLive(repo)
+      collectionRepo <- ZIO.service[CollectionRepository]
+      categoryRepo   <- ZIO.service[CategoryRepository]
+    } yield new CollectionServiceLive(collectionRepo, categoryRepo)
   }
 }
