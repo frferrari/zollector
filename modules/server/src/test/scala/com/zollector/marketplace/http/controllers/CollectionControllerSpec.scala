@@ -15,6 +15,7 @@ import java.time.Instant
 import com.zollector.marketplace.domain.commands.*
 import com.zollector.marketplace.domain.data.*
 import com.zollector.marketplace.domain.data.ValueObjects.*
+import com.zollector.marketplace.domain.queries.{CollectionFacets, CollectionFilter}
 import com.zollector.marketplace.http.requests.*
 import com.zollector.marketplace.services.*
 import com.zollector.marketplace.syntax.*
@@ -76,7 +77,10 @@ object CollectionControllerSpec extends ZIOSpecDefault {
 
     override def deleteBySlug(slug: Slug, userId: UserId): Task[Boolean] = ZIO.succeed(false)
 
-    override def allFilters(languageCode: LanguageCode = LanguageCode.EN): Task[CollectionFilter] =
+    override def allFacets(languageCode: LanguageCode = LanguageCode.EN): Task[CollectionFacets] =
+      ZIO.fail(new RuntimeException("Not implemented yet"))
+
+    override def search(filter: CollectionFilter): Task[List[Collection]] =
       ZIO.fail(new RuntimeException("Not implemented yet"))
   }
 

@@ -6,6 +6,7 @@ import sttp.tapir.generic.auto.*
 import com.zollector.marketplace.http.requests.*
 import com.zollector.marketplace.domain.data.*
 import com.zollector.marketplace.domain.data.ValueObjects.CollectionId
+import com.zollector.marketplace.domain.queries.{CollectionFacets, CollectionFilter}
 
 trait CollectionEndpoints extends BaseEndpoint {
 
@@ -65,13 +66,22 @@ trait CollectionEndpoints extends BaseEndpoint {
       .delete
       .out(jsonBody[Boolean])
 
-  val allFiltersEndpoint =
+  val allFacetsEndpoint =
     baseEndpoint
       .tag("collections")
-      .name("allFilters")
-      .description("")
-      .in("collections" / "filters")
+      .name("allFacets")
+      .description("get all possible search facets")
+      .in("collections" / "facets")
       .get
-      .out(jsonBody[CollectionFilter])
+      .out(jsonBody[CollectionFacets])
 
+  val searchEndpoint =
+    baseEndpoint
+      .tag("collections")
+      .name("search")
+      .description("get collections based on filters")
+      .in("collections" / "search")
+      .post
+      .in(jsonBody[CollectionFilter])
+      .out(jsonBody[List[Collection]])
 }

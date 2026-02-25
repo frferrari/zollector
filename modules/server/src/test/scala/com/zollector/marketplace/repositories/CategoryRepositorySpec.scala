@@ -72,6 +72,16 @@ object CategoryRepositorySpec extends ZIOSpecDefault with RepositorySpec {
             notFoundCategory.isEmpty
         )
       },
+      test("get all categories") {
+        for {
+          repo                        <- ZIO.service[CategoryRepository]
+          postageStampCategoryCreated <- repo.create(categoryStamps, categoryStampTranslations)
+          postcardCategoryCreated     <- repo.create(categoryPostcards, categoryPostcardTranslations)
+          fetchedCategories           <- repo.get
+        } yield assertTrue(
+          fetchedCategories.toSet == Set(postageStampCategoryCreated, postcardCategoryCreated)
+        )
+      },
       test("get localized Categories") {
         for {
           repo                     <- ZIO.service[CategoryRepository]

@@ -6,6 +6,7 @@ import com.zollector.marketplace.domain.data.*
 import com.zollector.marketplace.repositories.*
 import com.zollector.marketplace.domain.commands.*
 import com.zollector.marketplace.domain.data.ValueObjects.*
+import com.zollector.marketplace.domain.queries.{CollectionFacets, CollectionFilter}
 import com.zollector.marketplace.repositories.referential.CategoryRepository
 
 trait CollectionService {
@@ -18,7 +19,8 @@ trait CollectionService {
   def updateBySlug(slug: Slug, userId: UserId, cmd: UpdateCollectionCommand): Task[Option[Collection]]
   def deleteById(id: CollectionId, userId: UserId): Task[Boolean]
   def deleteBySlug(slug: Slug, userId: UserId): Task[Boolean]
-  def allFilters(languageCode: LanguageCode = LanguageCode.EN): Task[CollectionFilter]
+  def allFacets(languageCode: LanguageCode = LanguageCode.EN): Task[CollectionFacets]
+  def search(filter: CollectionFilter): Task[List[Collection]]
 }
 
 class CollectionServiceLive private (collectionRepo: CollectionRepository, categoryRepo: CategoryRepository)
@@ -51,10 +53,14 @@ class CollectionServiceLive private (collectionRepo: CollectionRepository, categ
   override def deleteBySlug(slug: Slug, userId: UserId): Task[Boolean] =
     collectionRepo.deleteBySlug(slug, userId)
 
-  override def allFilters(languageCode: LanguageCode = LanguageCode.EN): Task[CollectionFilter] =
+  override def allFacets(languageCode: LanguageCode = LanguageCode.EN): Task[CollectionFacets] =
     for {
       categories <- categoryRepo.getAllLocalized(languageCode)
-    } yield CollectionFilter(categories)
+    } yield CollectionFacets(categories)
+
+  override def search(filter: CollectionFilter): Task[List[Collection]] =
+    collectionRepo.search(filter)
+
 }
 
 object CollectionServiceLive {

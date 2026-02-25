@@ -15,6 +15,13 @@ object ZioLaminar {
           zio.tap(value => ZIO.attempt(eventBus.emit(value))).provide(BackendClientLive.configuredLayer)
         )
       }
+
+    def toEventStream: EventStream[A] = {
+      val bus = EventBus[A]()
+      emitTo(bus)
+      bus.events
+    }
+
     def runJS =
       Unsafe.unsafe { implicit unsafe =>
         Runtime.default.unsafe.runToFuture(zio.provide(BackendClientLive.configuredLayer))

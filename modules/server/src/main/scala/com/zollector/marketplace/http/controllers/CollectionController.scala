@@ -74,12 +74,17 @@ class CollectionController private (service: CollectionService, jwtService: JWTS
         service.deleteById(collectionId, userId.id).either
       }
 
-  val allFilters: ServerEndpoint[Any, Task] =
-    allFiltersEndpoint
-      .serverLogic { _ => service.allFilters().either }
+  val allFacets: ServerEndpoint[Any, Task] =
+    allFacetsEndpoint
+      .serverLogic { _ => service.allFacets().either }
+
+  val search: ServerEndpoint[Any, Task] =
+    searchEndpoint.serverLogic { filter =>
+      service.search(filter).either
+    }
 
   override val routes: List[ServerEndpoint[Any, Task]] =
-    List(create, getAll, getAllTest, allFilters, getById, updateCollection, deleteCollection)
+    List(create, getAll, getAllTest, allFacets, search, getById, updateCollection, deleteCollection)
 }
 
 object CollectionController {

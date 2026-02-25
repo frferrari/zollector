@@ -8,16 +8,28 @@ import com.zollector.marketplace.domain.data.Collection
 import com.zollector.marketplace.domain.data.ValueObjects.*
 
 object CollectionsPage {
-  val collectionsBus = EventBus[List[Collection]]()
+  val filterPanel = new FilterPanel
 
-  def performBackendCall(): Unit = {
-    val collectionsZIO = useBackend(_.collection.getAllTestEndpoint(()))
-    collectionsZIO.emitTo(collectionsBus)
+  val collectionEvents: EventStream[List[Collection]] = {
+    // - getAllEndpoint allows to display all collections when the page is initially displayed
+    // - then the searchEndpoint call allows to filter out this page based on the CollectionFilter anytime
+    //     the user clicks on the apply filter button because it emits an event in the triggerFilters
+    useBackend(_.collection.getAllTestEndpoint(())).toEventStream.mergeWith {
+      filterPanel.triggerFilters.flatMap { newFilter =>
+        useBackend(_.collection.searchEndpoint(newFilter)).toEventStream
+      }
+    }
   }
+
+  //  val collectionsBus = EventBus[List[Collection]]()
+//
+//  def performBackendCall(): Unit = {
+//    val collectionsZIO = useBackend(_.collection.getAllTestEndpoint(()))
+//    collectionsZIO.emitTo(collectionsBus)
+//  }
 
   def apply() =
     sectionTag(
-      onMountCallback(_ => performBackendCall()),
       cls := "section-1",
       div(
         cls := "container company-list-hero",
@@ -32,11 +44,11 @@ object CollectionsPage {
           cls := "row jvm-recent-companies-body",
           div(
             cls := "col-lg-4",
-            FilterPanel()
+            filterPanel()
           ),
           div(
             cls := "col-lg-8",
-            children <-- collectionsBus.events.map(_.map(renderCollection))
+            children <-- collectionEvents.map(_.map(renderCollection))
           )
         )
       )

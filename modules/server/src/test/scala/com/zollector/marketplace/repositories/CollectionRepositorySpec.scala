@@ -8,6 +8,7 @@ import com.zollector.marketplace.domain.commands.*
 import com.zollector.marketplace.domain.data.*
 import com.zollector.marketplace.repositories.*
 import com.zollector.marketplace.domain.data.ValueObjects.*
+import com.zollector.marketplace.domain.queries.CollectionFilter
 
 object CollectionRepositorySpec extends ZIOSpecDefault with RepositorySpec {
 
@@ -16,13 +17,16 @@ object CollectionRepositorySpec extends ZIOSpecDefault with RepositorySpec {
   private val bobUserId    = UserId.random
   private val michioUserId = UserId.random
 
-  private val postageStampsCategoryId = CategoryId(1L)
-  private val singleStampsFamilyId    = FamilyId(1L)
+  private val postageStampCategoryId = CategoryId(1L)
+  private val singleStampFamilyId    = FamilyId(1L)
+  private val postcardCategoryId     = CategoryId(2L)
+  private val singlePostcardFamilyId = FamilyId(21L)
+  private val phonecardCategoryId    = CategoryId(3L)
 
   private val bobCollectionA = CreateCollectionCommand(
     userId = bobUserId,
-    categoryId = postageStampsCategoryId,
-    familyId = singleStampsFamilyId,
+    categoryId = postageStampCategoryId,
+    familyId = singleStampFamilyId,
     name = "Norway 1960 1990",
     description = "Stamps of Norway from 1960 to 1990",
     yearStart = Some(1960),
@@ -31,8 +35,8 @@ object CollectionRepositorySpec extends ZIOSpecDefault with RepositorySpec {
 
   private val bobCollectionB = CreateCollectionCommand(
     userId = bobUserId,
-    categoryId = postageStampsCategoryId,
-    familyId = singleStampsFamilyId,
+    categoryId = postageStampCategoryId,
+    familyId = singleStampFamilyId,
     name = "Sweden 1940 1970",
     description = "Stamps of Sweden from 1940 to 1970",
     yearStart = Some(1940),
@@ -41,12 +45,22 @@ object CollectionRepositorySpec extends ZIOSpecDefault with RepositorySpec {
 
   private val michioCollectionA = CreateCollectionCommand(
     userId = michioUserId,
-    categoryId = postageStampsCategoryId,
-    familyId = singleStampsFamilyId,
+    categoryId = postageStampCategoryId,
+    familyId = singleStampFamilyId,
     name = "Finland 1930 1980",
     description = "Stamps of Finland from 1930 to 1980",
     yearStart = Some(1930),
     yearEnd = Some(1980)
+  ).toCollection()
+
+  private val michioCollectionB = CreateCollectionCommand(
+    userId = michioUserId,
+    categoryId = postcardCategoryId,
+    familyId = singlePostcardFamilyId,
+    name = "Eiffel Tower",
+    description = "Postcards showing the Eiffel Tower",
+    yearStart = None,
+    yearEnd = None
   ).toCollection()
 
   private val bobCollectionAupdated = bobCollectionA.copy(
@@ -237,6 +251,37 @@ object CollectionRepositorySpec extends ZIOSpecDefault with RepositorySpec {
             bobCollectionBstillExistsById &&
             bobCollectionBstillExistsBySlug &&
             michioCollectionAstillExistsById
+        )
+      },
+      test("search collections using a CollectionFilter") {
+        for {
+          repo              <- ZIO.service[CollectionRepository]
+          bobCollectionA    <- repo.create(bobCollectionA)
+          bobCollectionB    <- repo.create(bobCollectionB)
+          michioCollectionA <- repo.create(michioCollectionA)
+          michioCollectionB <- repo.create(michioCollectionB)
+
+          allCategories <- repo.search(
+            CollectionFilter(categories = List(postageStampCategoryId, postcardCategoryId))
+          )
+
+          postageStampCategory <- repo.search(
+            CollectionFilter(categories = List(postageStampCategoryId))
+          )
+
+          postcardCategory <- repo.search(
+            CollectionFilter(categories = List(postcardCategoryId))
+          )
+
+          noCategories <- repo.search(CollectionFilter.empty)
+
+          noMatchingCollection <- repo.search(CollectionFilter(categories = List(phonecardCategoryId)))
+        } yield assertTrue(
+          allCategories.toSet == Set(bobCollectionA, bobCollectionB, michioCollectionA, michioCollectionB) &&
+            postageStampCategory.toSet == Set(bobCollectionA, bobCollectionB, michioCollectionA) &&
+            postcardCategory.toSet == Set(michioCollectionB) &&
+            noCategories.toSet == Set(bobCollectionA, bobCollectionB, michioCollectionA, michioCollectionB) &&
+            noMatchingCollection.isEmpty
         )
       }
     ).provide(CollectionRepositoryLive.layer, dataSourceLayer, Repository.quillLayer, Scope.default)

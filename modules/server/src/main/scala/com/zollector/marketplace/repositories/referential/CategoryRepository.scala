@@ -10,6 +10,7 @@ import com.zollector.marketplace.repositories.QuillMappings
 trait CategoryRepository {
   def create(category: Category, translations: List[CategoryTranslation]): Task[Category]
   def getById(categoryId: CategoryId): Task[Option[(Category, List[CategoryTranslation])]]
+  def get: Task[List[Category]]
   def getAllLocalized(language: LanguageCode): Task[List[LocalizedCategory]]
 }
 
@@ -42,6 +43,9 @@ class CategoryRepositoryLive private (quill: Quill.Postgres[SnakeCase]) extends 
     ).map { rows =>
       rows.headOption.map { case (category, _) => (category, rows.map(_._2)) }
     }
+
+  override def get: Task[List[Category]] =
+    run(query[Category])
 
   override def getAllLocalized(languageCode: LanguageCode): Task[List[LocalizedCategory]] =
     run(

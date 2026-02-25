@@ -5,6 +5,7 @@ import io.getquill.*
 import io.getquill.jdbczio.Quill
 import com.zollector.marketplace.domain.data.*
 import com.zollector.marketplace.domain.data.ValueObjects.*
+import com.zollector.marketplace.domain.queries.CollectionFilter
 
 import java.util.UUID
 
@@ -18,6 +19,7 @@ trait CollectionRepository {
   def updateBySlug(slug: Slug, userId: UserId, collection: Collection): Task[Option[Collection]]
   def deleteById(id: CollectionId, userId: UserId): Task[Boolean]
   def deleteBySlug(slug: Slug, userId: UserId): Task[Boolean]
+  def search(filter: CollectionFilter): Task[List[Collection]]
 }
 
 class CollectionRepositoryLive private (quill: Quill.Postgres[SnakeCase])
@@ -82,6 +84,19 @@ class CollectionRepositoryLive private (quill: Quill.Postgres[SnakeCase])
         .filter(c => c.slug == lift(slug) && c.userId == lift(userId))
         .delete
     }.map(deleteCount => deleteCount > 0)
+
+  override def search(filter: CollectionFilter): Task[List[Collection]] = {
+    if (filter.isEmpty) getAllTest // TODO use getAll by userId
+    else
+      run {
+        query[Collection]
+          .filter { collection =>
+            liftQuery(filter.categories.toSet).contains(collection.categoryId)
+          // liftQuery(filter.families.toSet).contains(FamilyId(1L)) // TODO refactor this when families are introduced
+          }
+      }
+  }
+
 }
 
 object CollectionRepositoryLive {

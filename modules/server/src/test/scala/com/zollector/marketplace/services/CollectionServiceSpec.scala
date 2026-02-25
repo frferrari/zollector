@@ -9,6 +9,7 @@ import com.zollector.marketplace.repositories.referential.*
 import com.zollector.marketplace.syntax.*
 import com.zollector.marketplace.domain.data.ValueObjects.*
 import com.zollector.marketplace.domain.data.referential.{Category, CategoryTranslation, LocalizedCategory}
+import com.zollector.marketplace.domain.queries.CollectionFilter
 
 object CollectionServiceSpec extends ZIOSpecDefault {
 
@@ -76,18 +77,28 @@ object CollectionServiceSpec extends ZIOSpecDefault {
               false
           }
         }
+
+      override def search(filter: CollectionFilter): Task[List[Collection]] = {
+        if (filter.isEmpty) ZIO.succeed(List.empty)
+        else {
+          ZIO.succeed(db.values.filter(c => filter.categories.contains(c.categoryId)).toList)
+        }
+      }
     }
   )
 
   val stubCategoryRepositoryLayer = ZLayer.succeed(
     new CategoryRepository {
-      def create(category: Category, translations: List[CategoryTranslation]): Task[Category] =
+      override def create(category: Category, translations: List[CategoryTranslation]): Task[Category] =
         ZIO.fail(new RuntimeException("Not implemented"))
 
-      def getById(categoryId: CategoryId): Task[Option[(Category, List[CategoryTranslation])]] =
+      override def get: Task[List[Category]] =
         ZIO.fail(new RuntimeException("Not implemented"))
 
-      def getAllLocalized(language: LanguageCode): Task[List[LocalizedCategory]] =
+      override def getById(categoryId: CategoryId): Task[Option[(Category, List[CategoryTranslation])]] =
+        ZIO.fail(new RuntimeException("Not implemented"))
+
+      override def getAllLocalized(language: LanguageCode): Task[List[LocalizedCategory]] =
         ZIO.succeed(
           List(
             LocalizedCategory(CategoryId(1L), "Stamps", "Postage stamps, sheetlets, blocs", Slug("stamps")),
