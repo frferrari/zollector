@@ -7,14 +7,14 @@ import sttp.capabilities.WebSockets
 import sttp.tapir.client.sttp.SttpClientInterpreter
 import sttp.tapir.Endpoint
 import sttp.client3.impl.zio.FetchZioBackend
-
-import com.zollector.marketplace.http.endpoints.CollectionEndpoints
+import com.zollector.marketplace.http.endpoints.{CollectionEndpoints, UserEndpoints}
 import com.zollector.marketplace.config.BackendClientConfig
 import zio.URLayer
 import zio.ULayer
 
 trait BackendClient {
   val collection: CollectionEndpoints
+  val user: UserEndpoints
   def endpointRequestZIO[I, E <: Throwable, O](endpoint: Endpoint[Unit, I, E, O, Any])(payload: I): Task[O]
 }
 
@@ -24,6 +24,7 @@ class BackendClientLive(
     config: BackendClientConfig
 ) extends BackendClient {
   override val collection: CollectionEndpoints = new CollectionEndpoints {}
+  override val user: UserEndpoints             = new UserEndpoints {}
 
   private def endpointRequest[I, E, O](endpoint: Endpoint[Unit, I, E, O, Any]): I => Request[Either[E, O], Any] =
     interpreter
