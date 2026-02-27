@@ -68,7 +68,9 @@ object Header {
       renderNavLink("Sign Up", "/signup")
     )
 
-    val authedLinks = List()
+    val authedLinks = List(
+      renderNavLink("Log Out", "/logout")
+    )
 
     val customLinks =
       if (maybeUser.nonEmpty) authedLinks else unauthedLinks
