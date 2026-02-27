@@ -8,28 +8,23 @@ import com.zollector.marketplace.domain.data.Collection
 import com.zollector.marketplace.domain.data.ValueObjects.*
 
 object CollectionsPage {
-  val filterPanel = new FilterPanel
+  val filterPanel  = new FilterPanel
+  val initialBatch = EventBus[List[Collection]]()
 
   val collectionEvents: EventStream[List[Collection]] = {
     // - getAllEndpoint allows to display all collections when the page is initially displayed
     // - then the searchEndpoint call allows to filter out this page based on the CollectionFilter anytime
     //     the user clicks on the apply filter button because it emits an event in the triggerFilters
-    useBackend(_.collection.getAllTestEndpoint(())).toEventStream.mergeWith {
+    initialBatch.events.mergeWith {
       filterPanel.triggerFilters.flatMap { newFilter =>
         useBackend(_.collection.searchEndpoint(newFilter)).toEventStream
       }
     }
   }
 
-  //  val collectionsBus = EventBus[List[Collection]]()
-//
-//  def performBackendCall(): Unit = {
-//    val collectionsZIO = useBackend(_.collection.getAllTestEndpoint(()))
-//    collectionsZIO.emitTo(collectionsBus)
-//  }
-
   def apply() =
     sectionTag(
+      onMountCallback(_ => useBackend(_.collection.getAllTestEndpoint(())).emitTo(initialBatch)),
       cls := "section-1",
       div(
         cls := "container company-list-hero",

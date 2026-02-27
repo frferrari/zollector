@@ -3,6 +3,7 @@ package com.zollector.marketplace.pages
 import com.raquo.laminar.api.L.{*, given}
 import com.raquo.laminar.codecs.*
 import com.zollector.marketplace.common.Constants
+import com.zollector.marketplace.core.*
 import com.zollector.marketplace.core.ZioLaminar.*
 import com.zollector.marketplace.domain.data.ValueObjects.Email
 import com.zollector.marketplace.http.requests.LoginRequest
@@ -37,6 +38,7 @@ object LoginPage {
     } else {
       useBackend(_.user.loginEndpoint(LoginRequest(Email(state.email), state.password)))
         .map { userToken =>
+          Session.setUserState(userToken)
           stateVar.set(State())
           BrowserNavigation.replaceState("/")
         }

@@ -3,6 +3,8 @@ package com.zollector.marketplace.components
 import com.raquo.laminar.api.L.{*, given}
 import com.raquo.laminar.codecs.*
 import com.zollector.marketplace.common.Constants
+import com.zollector.marketplace.core.Session
+import com.zollector.marketplace.domain.data.UserToken
 import frontroute.*
 
 import scala.scalajs.js
@@ -36,7 +38,7 @@ object Header {
                 idAttr := "navbarNav",
                 ul(
                   cls := "navbar-nav ms-auto menu align-center expanded text-center SMN_effect-3",
-                  renderNavLinks()
+                  children <-- Session.userState.signal.map(renderNavLinks)
                 )
               )
             )
@@ -56,12 +58,22 @@ object Header {
       )
     )
 
-  private def renderNavLinks() = {
-    List(
-      renderNavLink("Collections", "/collections"),
+  private def renderNavLinks(maybeUser: Option[UserToken]) = {
+    val constantLinks = List(
+      renderNavLink("Collections", "/collections")
+    )
+
+    val unauthedLinks = List(
       renderNavLink("Log In", "/login"),
       renderNavLink("Sign Up", "/signup")
     )
+
+    val authedLinks = List()
+
+    val customLinks =
+      if (maybeUser.nonEmpty) authedLinks else unauthedLinks
+
+    constantLinks ++ customLinks
   }
 
   private def renderNavLink(text: String, location: String) =
