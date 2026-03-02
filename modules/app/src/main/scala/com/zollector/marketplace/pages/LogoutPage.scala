@@ -24,7 +24,7 @@ object LogoutPage extends FormPage[LogoutFormState]("Log Out") {
   override def renderChildren() = List(
     div(
       onMountCallback(_ => Session.clearUserState()),
-      cls := "logout-status",
+      cls := "centered-text",
       "You've been successfully logged out."
     )
   )

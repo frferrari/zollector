@@ -21,6 +21,9 @@ object Router {
           path("signup") {
             SignupPage()
           },
+          path("profile") {
+            ProfilePage()
+          },
           path("logout") {
             LogoutPage()
           },

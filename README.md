@@ -2,6 +2,35 @@
 
 A project based on the zio-rite-of-passage course from RockTheJVM
 
+# Running locally
+
+In different terminals, run the below commands :
+
+- Terminal 1
+
+```
+sbt
+project server
+run
+```
+
+- Terminal 2
+
+```
+sbt
+project app
+~fastOptJS
+```
+
+- Terminal 3
+
+```
+cd modules/app
+npm run start
+```
+
+In the browser you can open http://localhost:1234
+
 # Manual testing
 
 - Register a User
