@@ -16,7 +16,8 @@ class RecoveryTokensRepositoryLive private (
     tokenConfig: RecoveryTokensConfig,
     quill: Quill.Postgres[SnakeCase],
     userRepo: UserRepository
-) extends RecoveryTokensRepository with QuillMappings {
+) extends RecoveryTokensRepository
+    with QuillMappings {
 
   import quill.*
 
@@ -68,11 +69,17 @@ class RecoveryTokensRepositoryLive private (
       case Some(existingUser) => makeFreshToken(email).map(Some(_))
     }
 
-  override def checkToken(email: Email, token: String): Task[Boolean] =
-    run(
-      query[PasswordRecoveryToken].filter(r => r.email == lift(email) && r.token == lift(token))
-    )
-      .map(_.nonEmpty)
+  override def checkToken(email: Email, token: String): Task[Boolean] = {
+    for {
+      now <- Clock.instant
+      checkValid <-
+        run(
+          query[PasswordRecoveryToken].filter(r =>
+            r.email == lift(email) && r.token == lift(token) && r.expiration > lift(now.toEpochMilli)
+          )
+        ).map(_.nonEmpty)
+    } yield checkValid
+  }
 }
 
 object RecoveryTokensRepositoryLive {

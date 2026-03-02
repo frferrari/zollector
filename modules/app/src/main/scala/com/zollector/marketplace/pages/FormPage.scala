@@ -18,38 +18,41 @@ trait FormState {
 
 abstract class FormPage[S <: FormState](formTitle: String) {
 
-  val stateVar: Var[S]
-
   def renderChildren(): List[ReactiveHtmlElement[dom.html.Element]]
+  def basicState: S
 
-  def apply() = div(
-    cls := "row",
+  val stateVar: Var[S] = Var(basicState)
+
+  def apply() =
     div(
-      cls := "col-md-5 p-0",
-      div(cls := "logo"),
-      img(
-        src := Constants.logoImage,
-        alt := "Zollector"
-      )
-    ),
-    div(
-      cls := "col-md-7",
+      onUnmountCallback(_ => stateVar.set(basicState)),
+      cls := "row",
       div(
-        cls := "form-section",
-        div(cls := "top-section", h1(span(formTitle))),
-        children <-- stateVar.signal
-          .map(_.maybeStatus)
-          .map(renderStatus)
-          .map(_.toList),
-        form(
-          nameAttr := "signin",
-          cls      := "form",
-          idAttr   := "form",
-          renderChildren()
+        cls := "col-md-5 p-0",
+        div(cls := "logo"),
+        img(
+          src := Constants.logoImage,
+          alt := "Zollector"
+        )
+      ),
+      div(
+        cls := "col-md-7",
+        div(
+          cls := "form-section",
+          div(cls := "top-section", h1(span(formTitle))),
+          children <-- stateVar.signal
+            .map(_.maybeStatus)
+            .map(renderStatus)
+            .map(_.toList),
+          form(
+            nameAttr := "signin",
+            cls      := "form",
+            idAttr   := "form",
+            renderChildren()
+          )
         )
       )
     )
-  )
 
   def renderStatus(status: Option[Either[String, String]]) = status.map {
     case Left(error) =>

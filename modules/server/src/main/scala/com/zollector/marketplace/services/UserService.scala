@@ -1,15 +1,17 @@
 package com.zollector.marketplace.services
 
 import zio.*
+
 import java.security.SecureRandom
 import java.time.Instant
 import javax.crypto.SecretKeyFactory
 import javax.crypto.spec.PBEKeySpec
-
 import com.zollector.marketplace.http.requests.*
 import com.zollector.marketplace.domain.data.*
 import com.zollector.marketplace.domain.data.ValueObjects.*
+import com.zollector.marketplace.domain.errors.UnauthorizedException
 import com.zollector.marketplace.repositories.*
+import zio.http.Status.Unauthorized
 
 trait UserService {
   def registerUser(req: RegisterUserRequest): Task[User]
@@ -57,7 +59,7 @@ class UserServiceLive private (
     for {
       existingUser <- userRepo
         .getByEmail(req.email)
-        .someOrFail(new RuntimeException(s"Can't verify user ${req.email}, not found"))
+        .someOrFail(UnauthorizedException(s"User email doesn't exist"))
       verified <- ZIO.attempt(
         UserServiceLive.Hasher.validateHash(req.oldPassword, existingUser.hashedPassword)
       )
@@ -74,7 +76,7 @@ class UserServiceLive private (
     for {
       existingUser <- userRepo
         .getByEmail(req.email)
-        .someOrFail(new RuntimeException(s"Can't verify user ${req.email}, not found"))
+        .someOrFail(UnauthorizedException(s"User email doesn't exist"))
       verified <- ZIO.attempt(
         UserServiceLive.Hasher.validateHash(req.password, existingUser.hashedPassword)
       )
@@ -88,7 +90,7 @@ class UserServiceLive private (
     for {
       existingUser <- userRepo
         .getByEmail(req.email)
-        .someOrFail(new RuntimeException(s"Can't verify user ${req.email}"))
+        .someOrFail(UnauthorizedException(s"User email doesn't exist"))
       verified <- ZIO.attempt(
         UserServiceLive.Hasher.validateHash(req.password, existingUser.hashedPassword)
       )
@@ -195,7 +197,9 @@ object UserServiceDemo {
     println(
       UserServiceLive.Hasher.validateHash(
         password,
-        HashedPassword("1000:957CFE57B3A3C7FE1888AA9E00FB2E05E385EE6330A89374:7D59DE2824017BE7ED869B50D41F1A8F3A32AF05E82D2E00")
+        HashedPassword(
+          "1000:957CFE57B3A3C7FE1888AA9E00FB2E05E385EE6330A89374:7D59DE2824017BE7ED869B50D41F1A8F3A32AF05E82D2E00"
+        )
       )
     )
   }

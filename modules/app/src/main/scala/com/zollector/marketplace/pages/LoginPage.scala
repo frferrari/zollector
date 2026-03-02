@@ -1,24 +1,23 @@
 package com.zollector.marketplace.pages
 
 import com.raquo.laminar.api.L.{*, given}
-import com.raquo.laminar.codecs.*
 import com.zollector.marketplace.common.Constants
+import com.zollector.marketplace.components.Anchors
 import com.zollector.marketplace.core.*
 import com.zollector.marketplace.core.ZioLaminar.*
 import com.zollector.marketplace.domain.data.ValueObjects.Email
 import com.zollector.marketplace.http.requests.LoginRequest
-import org.scalajs.dom
 import frontroute.*
 import zio.*
 
 case class LoginFormState(
-    email: String = "",
+    email: Email = Email(""),
     password: String = "",
     upstreamError: Option[String] = None,
     override val showStatus: Boolean = false
 ) extends FormState {
   private val emailFormatError: Option[String] =
-    Option.when(!email.matches(Constants.emailRegex))("Email is invalid")
+    Option.when(!email.value.matches(Constants.emailRegex))("Email is invalid")
 
   private val passwordError: Option[String] =
     Option.when(password.isEmpty)("Password can't be empty")
@@ -29,13 +28,13 @@ case class LoginFormState(
 
 object LoginPage extends FormPage[LoginFormState]("Log In") {
 
-  override val stateVar: Var[LoginFormState] = Var(LoginFormState())
+  override def basicState = LoginFormState()
 
   val submitter = Observer[LoginFormState] { state =>
     if (state.hasErrors) {
       stateVar.update(_.copy(showStatus = true))
     } else {
-      useBackend(_.user.loginEndpoint(LoginRequest(Email(state.email), state.password)))
+      useBackend(_.user.loginEndpoint(LoginRequest(state.email, state.password)))
         .map { userToken =>
           Session.setUserState(userToken)
           stateVar.set(LoginFormState())
@@ -57,7 +56,7 @@ object LoginPage extends FormPage[LoginFormState]("Log In") {
       "text",
       true,
       "Your email",
-      (s, e) => s.copy(email = e, showStatus = false, upstreamError = None)
+      (s, e) => s.copy(email = Email(e), showStatus = false, upstreamError = None)
     ),
     renderInput(
       "Password",
@@ -71,6 +70,11 @@ object LoginPage extends FormPage[LoginFormState]("Log In") {
       `type` := "button",
       "Log In",
       onClick.preventDefault.mapTo(stateVar.now()) --> submitter
+    ),
+    Anchors.renderNavLink(
+      "Forgot Password ?",
+      "/forgot",
+      "auth-link"
     )
   )
 }

@@ -10,7 +10,7 @@ object HttpError {
     HttpError(tuple._1, tuple._2, new RuntimeException(tuple._2))
 
   def encode(error: Throwable): (StatusCode, String) = error match {
-    case UnauthorizedException => (StatusCode.Unauthorized, error.getMessage)
-    case _                     => (StatusCode.InternalServerError, error.getMessage)
+    case UnauthorizedException(msg) => (StatusCode.Unauthorized, msg)
+    case _                          => (StatusCode.InternalServerError, error.getMessage)
   }
 }

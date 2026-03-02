@@ -19,7 +19,7 @@ case class LogoutFormState() extends FormState {
 
 object LogoutPage extends FormPage[LogoutFormState]("Log Out") {
 
-  override val stateVar: Var[LogoutFormState] = Var(LogoutFormState())
+  override def basicState = LogoutFormState()
 
   override def renderChildren() = List(
     div(

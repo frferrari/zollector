@@ -33,7 +33,7 @@ case class ChangePasswordFormState(
 
 object ProfilePage extends FormPage[ChangePasswordFormState]("Profile") {
 
-  override val stateVar: Var[ChangePasswordFormState] = Var(ChangePasswordFormState())
+  override def basicState = ChangePasswordFormState()
 
   def submitter(email: Email) = Observer[ChangePasswordFormState] { state =>
     if (state.hasErrors) {
