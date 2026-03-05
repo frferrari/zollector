@@ -69,6 +69,8 @@ object Header {
     )
 
     val authedLinks = List(
+      renderNavLink("Add Collection", "/post"),
+      renderNavLink("Profile", "/profile"),
       renderNavLink("Log Out", "/logout")
     )
 

@@ -33,6 +33,9 @@ object Router {
           path("logout") {
             LogoutPage()
           },
+          path("post") {
+            CreateCollectionPage()
+          },
           noneMatched {
             NotFoundPage()
           }
